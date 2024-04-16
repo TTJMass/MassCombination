@@ -1,6 +1,20 @@
-Outputs of Convino, when running on single measurement ATLAS8TeV
+Outputs of Convino, when running on single measurement ATLAS8TeV.
 
-Had to remove TTbarRadiation, TTbarMarixElement, TTbarUnderlyingEvent, BJes, JERnp1 since they were producing 'nan's in Convino's fit
+Still need to double check differences.
 
-Stat-only fit gave me: mPole= 171.968  +-  0.604 GeV
-'Full'-syst fit gave me: mPole= 174.663  +-  1.486 GeV
+
+**Results
+
+Results obtained from RawInputs/ (syst NPs are summed in quadrature to get a full covariance matrix COV=COVstat+syst_i*syst_j) :
+
+ ----- ATLAS8TeV ------
+ FIT RESULT ( stat ):  171.977  +-  0.582   GeV
+ FIT RESULT ( total ):  172.322  +-  0.96   GeV
+
+
+Results obtained with Convino inputs (fitted NPs) :
+ ----- ATLAS8TeV ------
+ FIT RESULT ( stat ):  171.968  +-  0.604   GeV
+ FIT RESULT ( total ):  172.59  +-  1.101   GeV
+
+
