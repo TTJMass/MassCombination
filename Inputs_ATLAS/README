@@ -13,6 +13,8 @@ Convino outputs:
 `testATLAS8TeV_AllBins_withSyst_result.txt`
 
 
+For the moment, do not use the 'no0bin' cards.
+
 
 
 *Results
@@ -28,5 +30,3 @@ Results obtained with Convino inputs (fitted NPs) :
  ----- ATLAS8TeV ------
  FIT RESULT ( stat ):  171.968  +-  0.604   GeV
  FIT RESULT ( total ):  172.59  +-  1.101   GeV
-
-
