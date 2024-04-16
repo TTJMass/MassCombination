@@ -1,9 +1,21 @@
 Outputs of Convino, when running on single measurement ATLAS8TeV.
+Still need to double check differences when removing bin0. So far got stable results when including all bins.
 
-Still need to double check differences.
+
+Cards used as Inputs to Convino:
+
+`ATLAS8TeV_ConvinoInput_noSysts.txt`
+`ATLAS8TeV_ConvinoInput_withSysts.txt`
+
+Convino outputs:
+
+`testATLAS8TeV_AllBins_noSyst_result.txt`
+`testATLAS8TeV_AllBins_withSyst_result.txt`
 
 
-**Results
+
+
+*Results
 
 Results obtained from RawInputs/ (syst NPs are summed in quadrature to get a full covariance matrix COV=COVstat+syst_i*syst_j) :
 
