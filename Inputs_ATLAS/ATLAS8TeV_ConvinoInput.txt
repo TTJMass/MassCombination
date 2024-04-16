@@ -1,0 +1,43 @@
+[hessian]
+    bin0 1.0
+    bin1 0 611.744
+    bin2 0 665.481 1095.63
+    bin3 0 703.221 1046.84 1293.79
+    bin4 0 1065.9 1540.65 1760.59 2919.94
+    bin5 0 291.154 435.499 495.275 749.457 507.071
+    bin6 0 344.042 490.614 549.968 864.114 183.835 1267.97
+    bin7 0 1565.39 2251.54 2452.67 3851.86 1276.45 -885.491 59023.9
+[end hessian]
+
+[systematics]
+[end systematics]
+
+[estimates]
+
+    n_estimates =  8 
+
+    name_0 =  bin0
+    value_0 =  0.13978 
+
+    name_1 =  bin1
+    value_1 =  1.14039 
+
+    name_2 =  bin2
+    value_2 =  2.1264 
+
+    name_3 =  bin3
+    value_3 =  2.44358 
+
+    name_4 =  bin4
+    value_4 =  2.17159 
+
+    name_5 =  bin5
+    value_5 =  1.14228 
+
+    name_6 =  bin6
+    value_6 =  0.584791 
+
+    name_7 =  bin7
+    value_7 =  0.0464247 
+
+[end estimates]

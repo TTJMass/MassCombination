@@ -1,6 +1,6 @@
 Outputs of Convino, when running on single measurement ATLAS8TeV
 
-Had to remove TTbarRadiation, TTbarMarixElement, TTbarUnderlyingEvent siunce they were producing 'nan's in Convino
+Had to remove TTbarRadiation, TTbarMarixElement, TTbarUnderlyingEvent, BJes, JERnp1 since they were producing 'nan's in Convino's fit
 
-Stat-only fit yield me: 171.968  +-  0.604
-'Full'-syst fit yield me: 174.665  +-  1.495
+Stat-only fit gave me: mPole= 171.968  +-  0.604 GeV
+'Full'-syst fit gave me: mPole= 174.663  +-  1.486 GeV
