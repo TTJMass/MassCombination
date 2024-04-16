@@ -1,0 +1,62 @@
+dependent_variables
+- header: {name: '$1/\sigma_{\mathrm{t\bar{t}+jet}} \mathrm{d} \sigma_{\mathrm{t\bar{t}+jet}}/\mathrm{d}\rho$', units: ''}
+  values:
+  - errors:
+    - asymerror: {minus: -0.0103686, plus: 0.0103686}
+      label: total
+    - asymerror: {minus: -0.0103686, plus: 0.0103686}
+      label: stat
+    value: 0.13978
+  - errors:
+    - asymerror: {minus: -0.0678592, plus: 0.0678592}
+      label: total
+    - asymerror: {minus: -0.0678592, plus: 0.0678592}
+      label: stat
+    value: 1.14039
+  - errors:
+    - asymerror: {minus: -0.0787503, plus: 0.0787503}
+      label: total
+    - asymerror: {minus: -0.0787503, plus: 0.0787503}
+      label: stat
+    value: 2.1264
+  - errors:
+    - asymerror: {minus: -0.0980123, plus: 0.0980123}
+      label: total
+    - asymerror: {minus: -0.0980123, plus: 0.0980123}
+      label: stat
+    value: 2.44358
+  - errors:
+    - asymerror: {minus: -0.0709312, plus: 0.0709312}
+      label: total
+    - asymerror: {minus: -0.0709312, plus: 0.0709312}
+      label: stat
+    value: 2.17159
+  - errors:
+    - asymerror: {minus: -0.0905821, plus: 0.0905821}
+      label: total
+    - asymerror: {minus: -0.0905821, plus: 0.0905821}
+      label: stat
+    value: 1.14228
+  - errors:
+    - asymerror: {minus: -0.0491616, plus: 0.0491616}
+      label: total
+    - asymerror: {minus: -0.0491616, plus: 0.0491616}
+      label: stat
+    value: 0.584791
+  - errors:
+    - asymerror: {minus: -0.00829626, plus: 0.00829626}
+      label: total
+    - asymerror: {minus: -0.00829626, plus: 0.00829626}
+      label: stat
+    value: 0.0464247
+independent_variables
+- header: {name: '$\rho$', units: '1'}
+  values:
+  - {high: 0.25, low: 0}
+  - {high: 0.325, low: 0.25}
+  - {high: 0.425, low: 0.325}
+  - {high: 0.525, low: 0.425}
+  - {high: 0.675, low: 0.525}
+  - {high: 0.725, low: 0.675}
+  - {high: 0.775, low: 0.725}
+  - {high: 1, low: 0.775}
