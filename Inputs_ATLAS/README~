@@ -1,0 +1,8 @@
+Outputs of Convino, when running on single measurement
+
+Had to remove TTbarRadiation, TTbarMarixElement, TTbarUnderlyingEvent siunce they were producing 'nan's in Convino
+
+
+Stat-only fit yield me: 171.968  +-  0.604
+
+'Full'-syst fit yield me: 174.665  +-  1.495
