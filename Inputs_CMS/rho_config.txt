@@ -1,0 +1,32 @@
+[global]
+
+	isDifferential = false
+	normalise = false
+
+[end global]
+
+[inputs]
+
+	nFiles = 1 
+	file0 = rho_cms_inputs.txt
+
+[end inputs]
+
+[observables]
+
+	cms_bin0 = CMS_13TeV_2016_dil_abs_rho_0p0_0p3
+	cms_bin1 = CMS_13TeV_2016_dil_abs_rho_0p3_0p45
+	cms_bin2 = CMS_13TeV_2016_dil_abs_rho_0p45_0p7
+	cms_bin3 = CMS_13TeV_2016_dil_abs_rho_0p7_1p0
+
+[end observables]
+
+[correlations]
+
+	#!FILE  =  extra_correlations.txt
+
+[end correlations]
+
+[uncertainty impacts]
+
+[end uncertainty impacts]
