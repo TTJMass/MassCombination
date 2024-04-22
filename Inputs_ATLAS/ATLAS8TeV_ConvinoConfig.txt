@@ -1,7 +1,7 @@
 Configuration file for atlas/CMS tt+1jet "rhoS" observable
 
 [global]
-	isDifferential = false
+	isDifferential = true
 	normalise = false
 [end global]
 
@@ -9,9 +9,7 @@ Configuration file for atlas/CMS tt+1jet "rhoS" observable
 
     nFiles = 1
 
-    file0 = /lustre/ific.uv.es/grid/atlas/t3/davmel/MTOP/MpoleComb/Convino/run/ATLAS8TeV_inputTAG.txt
-    #file0 =  /lustre/ific.uv.es/grid/atlas/t3/davmel/MTOP/MpoleComb/TTJetMassCombination/Inputs_ATLAS/test.txt 
-    #file1 = /lustre/ific.uv.es/grid/atlas/t3/davmel/MTOP/MpoleComb/TTJetMassCombination/Inputs_CMS/result.txt     
+    file0 = ATLAS8TeV_ConvinoInput_withSysts.txt
 
 [end inputs]
 	
@@ -19,18 +17,14 @@ Configuration file for atlas/CMS tt+1jet "rhoS" observable
 
 	# This block defines which estimates should be combined.
 	# The combined name of the observable can be chosen freely.
-	ATLAS_8TeV_2012_lj_norm_rho_0p0_0p25 = bin0
-	ATLAS_8TeV_2012_lj_norm_rho_0p25_0p325 = bin1
-	ATLAS_8TeV_2012_lj_norm_rho_0p325_0p425 = bin2
-	ATLAS_8TeV_2012_lj_norm_rho_0p425_0p525 = bin3
-	ATLAS_8TeV_2012_lj_norm_rho_0p525_0p675 = bin4
-	ATLAS_8TeV_2012_lj_norm_rho_0p675_0p725 = bin5
-	ATLAS_8TeV_2012_lj_norm_rho_0p725_0p775 = bin6
-	ATLAS_8TeV_2012_lj_norm_rho_0p775_1p0 = bin7
-	#CMS_bin0 = cms_bin0	
-	#CMS_bin1 = cms_bin1	
-	#CMS_bin2 = cms_bin2	
-	#CMS_bin3 = cms_bin3
+	ATLAS_8TeV_2012_lj_norm_rho_0p0_0p25 = ATLAS_8TeV_2012_lj_norm_rho_0p0_0p25
+	ATLAS_8TeV_2012_lj_norm_rho_0p25_0p325 = ATLAS_8TeV_2012_lj_norm_rho_0p25_0p325
+	ATLAS_8TeV_2012_lj_norm_rho_0p325_0p425 = ATLAS_8TeV_2012_lj_norm_rho_0p325_0p425
+	ATLAS_8TeV_2012_lj_norm_rho_0p425_0p525 = ATLAS_8TeV_2012_lj_norm_rho_0p425_0p525
+	ATLAS_8TeV_2012_lj_norm_rho_0p525_0p675 = ATLAS_8TeV_2012_lj_norm_rho_0p525_0p675
+	ATLAS_8TeV_2012_lj_norm_rho_0p675_0p725 = ATLAS_8TeV_2012_lj_norm_rho_0p675_0p725
+	ATLAS_8TeV_2012_lj_norm_rho_0p725_0p775 = ATLAS_8TeV_2012_lj_norm_rho_0p725_0p775
+	ATLAS_8TeV_2012_lj_norm_rho_0p775_1p0 = ATLAS_8TeV_2012_lj_norm_rho_0p775_1p0
 
 [end observables]
 	
@@ -64,11 +58,17 @@ Configuration file for atlas/CMS tt+1jet "rhoS" observable
 
     # The resulting table of uncertainties does not represent independent uncertainty groups
     # and serves as illustration, only.    
-    #a_unc = sys_a1 + sys_a2 + sys_a3
-    #b_unc = sys_b1 + sys_b2 + sys_b3
-#    NP_TtbarUnderlyingEvent
-#    NP_JetJESModel1
-#    NP_JetJESPileupRho
+
+    #ATLAS_ColorReconnection = ATLAS_modelling_ttbar_ColorReconnection
+    #ATLAS_ShowerHadronization = ATLAS_modelling_ttbar_ShowerHadronization
+    #ATLAS_UnderlyingEvent = ATLAS_modelling_ttbar_UnderlyingEvent
+    #ATLAS_Radiation = ATLAS_modelling_ttbar_Radiation 
+    #ATLAS_MatrixElement = ATLAS_modelling_ttbar_MatrixElement 
+    ATLAS_modelling_ttbar = ATLAS_modelling_ttbar_ColorReconnection + ATLAS_modelling_ttbar_ShowerHadronization + ATLAS_modelling_ttbar_UnderlyingEvent + ATLAS_modelling_ttbar_Radiation + ATLAS_modelling_ttbar_MatrixElement
+   
+    ATLAS_scale_j =  ATLAS_scale_j_Det1  +   ATLAS_scale_j_Det2 +   ATLAS_scale_j_Det3 +   ATLAS_scale_j_EtaIntercalibrationModel +   ATLAS_scale_j_EtaIntercalibrationTotalStat +   ATLAS_scale_j_flavorcomp +   ATLAS_scale_j_flavorresponse +   ATLAS_scale_j_Mix1 +   ATLAS_scale_j_Mix2 +   ATLAS_scale_j_Mix3 +   ATLAS_scale_j_Mix4 +   ATLAS_scale_j_Model1 +   ATLAS_scale_j_Model2 +   ATLAS_scale_j_Model3 +   ATLAS_scale_j_Model4 +   ATLAS_scale_j_PileupOffsetMu +   ATLAS_scale_j_PileupOffsetNPV +   ATLAS_scale_j_PileupPt +   ATLAS_scale_j_PileupRho +   ATLAS_scale_j_PunchThrough +    ATLAS_scale_j_SinglePart +   ATLAS_scale_j_Stat1 +   ATLAS_scale_j_Stat2 +   ATLAS_scale_j_Stat3 +   ATLAS_scale_j_Stat4 +  ATLAS_scale_b
+   
+    ATLAS_res_j =   ATLAS_res_j_diff + ATLAS_res_j_noiseforward + ATLAS_res_j_np0 + ATLAS_res_j_np1 + ATLAS_res_j_np2 +  ATLAS_res_j_np3 +  ATLAS_res_j_np4 +  ATLAS_res_j_np5 +  ATLAS_res_j_np6 +  ATLAS_res_j_np7 +  ATLAS_res_j_np8 
 
 #[end uncertainty impacts]
 
