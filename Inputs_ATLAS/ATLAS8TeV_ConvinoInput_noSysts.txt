@@ -1,12 +1,14 @@
+Run as:
+python getConvinoInputs.py [withSys- bool] [removeBin - int] [correctBinWidthNormalization - bool]
 [hessian]
-    ATLAS_8TeV_2012_lj_norm_rho_0p0_0p25 1.0
-    ATLAS_8TeV_2012_lj_norm_rho_0p25_0p325 0.0 650.244
-    ATLAS_8TeV_2012_lj_norm_rho_0p325_0p425 0.0 712.817 1142.09
-    ATLAS_8TeV_2012_lj_norm_rho_0p425_0p525 0.0 750.568 1092.75 1338.85
-    ATLAS_8TeV_2012_lj_norm_rho_0p525_0p675 0.0 1149.6 1628.96 1854.09 3094.23
-    ATLAS_8TeV_2012_lj_norm_rho_0p675_0p725 0.0 312.11 448.909 500.637 795.302 507.651
-    ATLAS_8TeV_2012_lj_norm_rho_0p725_0p775 0.0 376.986 516.566 573.268 911.322 204.3 1275.16
-    ATLAS_8TeV_2012_lj_norm_rho_0p775_1p0 0.0 1684.77 2573.6 2745.15 4281.09 1462.27 -564.212 61168.8
+    ATLAS_8TeV_2012_lj_abs_rho_0p0_0p25 7.84387e-07
+    ATLAS_8TeV_2012_lj_abs_rho_0p25_0p325 7.6037e-08 2.37509e-07
+    ATLAS_8TeV_2012_lj_abs_rho_0p325_0p425 2.38318e-08 3.51836e-08 1.20455e-07
+    ATLAS_8TeV_2012_lj_abs_rho_0p425_0p525 -1.29494e-09 1.23001e-08 2.0371e-08 1.0777e-07
+    ATLAS_8TeV_2012_lj_abs_rho_0p525_0p675 -4.06138e-09 7.37529e-09 -1.6744e-09 1.89404e-08 9.32456e-08
+    ATLAS_8TeV_2012_lj_abs_rho_0p675_0p725 8.05023e-08 -1.43787e-08 -1.89738e-08 5.98337e-09 1.14364e-08 7.68691e-07
+    ATLAS_8TeV_2012_lj_abs_rho_0p725_0p775 4.46701e-08 7.49694e-09 -3.11796e-08 -7.61987e-09 1.00845e-07 -3.75546e-07 3.08313e-06
+    ATLAS_8TeV_2012_lj_abs_rho_0p775_1p0 -2.57032e-08 3.71374e-08 1.13304e-08 -4.52181e-09 6.50134e-08 3.78427e-07 -1.74095e-06 6.43342e-06
 [end hessian]
 
 [systematics]
@@ -16,28 +18,28 @@
 
     n_estimates =  8 
 
-    name_0 =  ATLAS_8TeV_2012_lj_norm_rho_0p0_0p25
-    value_0 =  0.13978 
+    name_0 =  ATLAS_8TeV_2012_lj_abs_rho_0p0_0p25
+    value_0 =  15572.8 
 
-    name_1 =  ATLAS_8TeV_2012_lj_norm_rho_0p25_0p325
-    value_1 =  1.14039 
+    name_1 =  ATLAS_8TeV_2012_lj_abs_rho_0p25_0p325
+    value_1 =  41355.3 
 
-    name_2 =  ATLAS_8TeV_2012_lj_norm_rho_0p325_0p425
-    value_2 =  2.1264 
+    name_2 =  ATLAS_8TeV_2012_lj_abs_rho_0p325_0p425
+    value_2 =  100896.0 
 
-    name_3 =  ATLAS_8TeV_2012_lj_norm_rho_0p425_0p525
-    value_3 =  2.44358 
+    name_3 =  ATLAS_8TeV_2012_lj_abs_rho_0p425_0p525
+    value_3 =  120510.0 
 
-    name_4 =  ATLAS_8TeV_2012_lj_norm_rho_0p525_0p675
-    value_4 =  2.17159 
+    name_4 =  ATLAS_8TeV_2012_lj_abs_rho_0p525_0p675
+    value_4 =  161828.0 
 
-    name_5 =  ATLAS_8TeV_2012_lj_norm_rho_0p675_0p725
-    value_5 =  1.14228 
+    name_5 =  ATLAS_8TeV_2012_lj_abs_rho_0p675_0p725
+    value_5 =  29974.0 
 
-    name_6 =  ATLAS_8TeV_2012_lj_norm_rho_0p725_0p775
-    value_6 =  0.584791 
+    name_6 =  ATLAS_8TeV_2012_lj_abs_rho_0p725_0p775
+    value_6 =  15047.8 
 
-    name_7 =  ATLAS_8TeV_2012_lj_norm_rho_0p775_1p0
-    value_7 =  0.0464247 
+    name_7 =  ATLAS_8TeV_2012_lj_abs_rho_0p775_1p0
+    value_7 =  5168.2 
 
 [end estimates]
