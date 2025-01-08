@@ -1,30 +1,30 @@
 # ATLAS CMS correlations
 
 # Obvious ones from the JES mapping
-ATLAS_scale_b = (-0.75)  CMS_scale_j_flavorBottom
-ATLAS_scale_j_flavorresponse = (-0.9)  CMS_scale_j_flavorGluon
-ATLAS_scale_j_EtaIntercalibrationModel = (-0.75)  CMS_scale_j_relativeFSR
-CMS_scale_j_absoluteMPFBias = (-0.25)  ATLAS_scale_j_Mix1
-CMS_scale_j_absoluteMPFBias = (-0.25)  ATLAS_scale_j_Mix2
-CMS_scale_j_absoluteMPFBias = (-0.25)  ATLAS_scale_j_Mix3
-CMS_scale_j_absoluteMPFBias = (-0.25)  ATLAS_scale_j_Mix4
-CMS_scale_j_absoluteMPFBias = (-0.25)  ATLAS_scale_j_Model1
-CMS_scale_j_absoluteMPFBias = (-0.25)  ATLAS_scale_j_Model2
-CMS_scale_j_absoluteMPFBias = (-0.25)  ATLAS_scale_j_Model3
+ATLAS_scale_b = (0.75)  CMS_scale_j_flavorBottom
+ATLAS_scale_j_flavorresponse = (0.9)  CMS_scale_j_flavorGluon
+ATLAS_scale_j_EtaIntercalibrationModel = (0.75)  CMS_scale_j_relativeFSR
+CMS_scale_j_absoluteMPFBias = (0.25)  ATLAS_scale_j_Mix1
+CMS_scale_j_absoluteMPFBias = (0.25)  ATLAS_scale_j_Mix2
+CMS_scale_j_absoluteMPFBias = (0.25)  ATLAS_scale_j_Mix3
+CMS_scale_j_absoluteMPFBias = (0.25)  ATLAS_scale_j_Mix4
+CMS_scale_j_absoluteMPFBias = (0.25)  ATLAS_scale_j_Model1
+CMS_scale_j_absoluteMPFBias = (0.25)  ATLAS_scale_j_Model2
+CMS_scale_j_absoluteMPFBias = (0.25)  ATLAS_scale_j_Model3
 CMS_scale_j_absoluteMPFBias = -(0.25)  ATLAS_scale_j_Model4
 
 # Other ones taken from the Run 1 mass combination
-CMS_modelling_ttbar_bfrag = (-0.50) ATLAS_modelling_ttbar_ShowerHadronization
-CMS_modelling_ttbar_bfragPythiaDefault = (-0.50) ATLAS_modelling_ttbar_ShowerHadronization
-CMS_modelling_ttbar_bfragPeterson = (-0.50) ATLAS_modelling_ttbar_ShowerHadronization
-CMS_modelling_ttbar_erdOn = (-0.50) ATLAS_modelling_ttbar_ColorReconnection
-CMS_modelling_ttbar_tuneQCD  = (-0.50) ATLAS_modelling_ttbar_ColorReconnection
-CMS_modelling_ttbar_tuneGluon  = (-0.50) ATLAS_modelling_ttbar_ColorReconnection
-CMS_modelling_ttbar_hdamp = (-0.50) ATLAS_modelling_ttbar_Radiation
-CMS_modelling_ttbar_isr = (-0.50) ATLAS_modelling_ttbar_Radiation
-CMS_modelling_ttbar_fsr = (-0.50) ATLAS_modelling_ttbar_Radiation
+CMS_modelling_ttbar_bfrag = (0.50) ATLAS_modelling_ttbar_ShowerHadronization
+CMS_modelling_ttbar_bfragPythiaDefault = (0.50) ATLAS_modelling_ttbar_ShowerHadronization
+CMS_modelling_ttbar_bfragPeterson = (0.50) ATLAS_modelling_ttbar_ShowerHadronization
+CMS_modelling_ttbar_erdOn = (0.50) ATLAS_modelling_ttbar_ColorReconnection
+CMS_modelling_ttbar_tuneQCD  = (0.50) ATLAS_modelling_ttbar_ColorReconnection
+CMS_modelling_ttbar_tuneGluon  = (0.50) ATLAS_modelling_ttbar_ColorReconnection
+CMS_modelling_ttbar_hdamp = (0.50) ATLAS_modelling_ttbar_Radiation
+CMS_modelling_ttbar_isr = (0.50) ATLAS_modelling_ttbar_Radiation
+CMS_modelling_ttbar_fsr = (0.50) ATLAS_modelling_ttbar_Radiation
 #CMS_pileup
-CMS_modelling_ttbar_tune = (-0.50) ATLAS_modelling_ttbar_UnderlyingEvent
+CMS_modelling_ttbar_tune = (0.50) ATLAS_modelling_ttbar_UnderlyingEvent
 
 
 ############################

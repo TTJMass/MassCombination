@@ -1,56 +1,36 @@
-Configuration file for atlas/CMS tt+1jet "rhoS" observable
-
 [global]
-	isDifferential = true
+	isDifferential = false
 	normalise = false
 [end global]
 
 [inputs]
 
     nFiles = 1
-
-    file0 = ATLAS8TeV_ConvinoInput_withSysts.txt
+    file0 = ATLAS8TeV_ConvinoInput_withSystsSmoothed.txt
 
 [end inputs]
 	
 [observables]	
 
-	# This block defines which estimates should be combined.
-	# The combined name of the observable can be chosen freely.
-	ATLAS_8TeV_2012_lj_norm_rho_0p0_0p25 = ATLAS_8TeV_2012_lj_norm_rho_0p0_0p25
-	ATLAS_8TeV_2012_lj_norm_rho_0p25_0p325 = ATLAS_8TeV_2012_lj_norm_rho_0p25_0p325
-	ATLAS_8TeV_2012_lj_norm_rho_0p325_0p425 = ATLAS_8TeV_2012_lj_norm_rho_0p325_0p425
-	ATLAS_8TeV_2012_lj_norm_rho_0p425_0p525 = ATLAS_8TeV_2012_lj_norm_rho_0p425_0p525
-	ATLAS_8TeV_2012_lj_norm_rho_0p525_0p675 = ATLAS_8TeV_2012_lj_norm_rho_0p525_0p675
-	ATLAS_8TeV_2012_lj_norm_rho_0p675_0p725 = ATLAS_8TeV_2012_lj_norm_rho_0p675_0p725
-	ATLAS_8TeV_2012_lj_norm_rho_0p725_0p775 = ATLAS_8TeV_2012_lj_norm_rho_0p725_0p775
-	ATLAS_8TeV_2012_lj_norm_rho_0p775_1p0 = ATLAS_8TeV_2012_lj_norm_rho_0p775_1p0
+	ATLAS_8TeV_2012_lj_abs_rho_0p0_0p25 = ATLAS_8TeV_2012_lj_abs_rho_0p0_0p25
+	ATLAS_8TeV_2012_lj_abs_rho_0p25_0p325 = ATLAS_8TeV_2012_lj_abs_rho_0p25_0p325
+	ATLAS_8TeV_2012_lj_abs_rho_0p325_0p425 = ATLAS_8TeV_2012_lj_abs_rho_0p325_0p425
+	ATLAS_8TeV_2012_lj_abs_rho_0p425_0p525 = ATLAS_8TeV_2012_lj_abs_rho_0p425_0p525
+	ATLAS_8TeV_2012_lj_abs_rho_0p525_0p675 = ATLAS_8TeV_2012_lj_abs_rho_0p525_0p675
+	ATLAS_8TeV_2012_lj_abs_rho_0p675_0p725 = ATLAS_8TeV_2012_lj_abs_rho_0p675_0p725
+	ATLAS_8TeV_2012_lj_abs_rho_0p725_0p775 = ATLAS_8TeV_2012_lj_abs_rho_0p725_0p775
+	ATLAS_8TeV_2012_lj_abs_rho_0p775_1p0 = ATLAS_8TeV_2012_lj_abs_rho_0p775_1p0
 
 [end observables]
 	
 	
-# correlations syntax: 
-# parameter = (<nominal correlation> & <scan from> : <to>) <other parameter> + other correlations
-# entries for scan are optional. If not used, syntax: "(<nominal correlation>)"
-[correlations]	
+[correlations]
 
-	# The syntax for correlation assumptions defined here is as follows:
-	# parameter = (<nominal correlation> & <scan from> : <to>) <other parameter> + <other correlations with same syntax>
-	# Example: sys_b1 has a nominal correlation of 0.2 to sys_c2
-	#          this correlation should be scanned from -0.1 to 0.4
-	#sys_a1 =  (0 & -0.9 : 0.9) sys_b2
-	# or without a scan:
-	#    sys_b1 = (0.2) sys_c2
-	# more than one correlation simultaneously:
-	#sys_a1 = (0.2 & -0.9 : 0.9) sys_c2 + (0.2 & 0.4 : -0.4) sys_c1 
-	
-	# correlations can also be added from a different file
-	# please not that this line has to start with # ! FILE (without the blanks)
-	# the file needs to be in the same directory as this config file
-	# # # ! FILE  =  extra_correlations.txt
+	#!FILE  =  extra_correlations.txt
+
 [end correlations]
 
-#[uncertainty impacts]
+[uncertainty impacts]
     # This block defines individual uncertainties or groups of uncertainties that should be evaluated 
     # with respect to their impact on the final combination results.
     # The procedure applied here is to fix the values under question and evaluate the difference in  
@@ -70,7 +50,7 @@ Configuration file for atlas/CMS tt+1jet "rhoS" observable
    
     ATLAS_res_j =   ATLAS_res_j_diff + ATLAS_res_j_noiseforward + ATLAS_res_j_np0 + ATLAS_res_j_np1 + ATLAS_res_j_np2 +  ATLAS_res_j_np3 +  ATLAS_res_j_np4 +  ATLAS_res_j_np5 +  ATLAS_res_j_np6 +  ATLAS_res_j_np7 +  ATLAS_res_j_np8 
 
-#[end uncertainty impacts]
+[end uncertainty impacts]
 
 
 

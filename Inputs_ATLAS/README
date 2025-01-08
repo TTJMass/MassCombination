@@ -1,11 +1,9 @@
-Outputs of Convino, when running on single measurement ATLAS8TeV.
-Still need to double check differences when removing bin0. So far got stable results when including all bins.
-
+Outputs of Convino, when running on single measurement ATLAS 8 TeV.
 
 Cards used as Inputs to Convino:
 
 `ATLAS8TeV_ConvinoInput_noSysts.txt`
-`ATLAS8TeV_ConvinoInput_withSysts.txt`
+`ATLAS8TeV_ConvinoInput_withSystsSmoothed.txt`
 
 Convino outputs:
 

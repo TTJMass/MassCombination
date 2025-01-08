@@ -9,18 +9,18 @@
 
 	nFiles = 2
 	file0 = CMS_13TeV_2016_dil_inputs.txt
-	file1 = ATLAS8TeV_ConvinoInput_withSysts.txt
+	file1 = ATLAS8TeV_ConvinoInput_no0bin_withSysts.txt
 
 [end inputs]
 
 [observables]
 
-	CMS_13TeV_2016_dil_abs_rho_0p0_0p3 = CMS_13TeV_2016_dil_abs_rho_0p0_0p3
-	CMS_13TeV_2016_dil_abs_rho_0p3_0p45 = CMS_13TeV_2016_dil_abs_rho_0p3_0p45
-	CMS_13TeV_2016_dil_abs_rho_0p45_0p7 = CMS_13TeV_2016_dil_abs_rho_0p45_0p7
-	CMS_13TeV_2016_dil_abs_rho_0p7_1p0 = CMS_13TeV_2016_dil_abs_rho_0p7_1p0
+	CMS_13TeV_2016_dil_absDivBinWidth_rho_0p0_0p3 = CMS_13TeV_2016_dil_absDivBinWidth_rho_0p0_0p3
+	CMS_13TeV_2016_dil_absDivBinWidth_rho_0p3_0p45 = CMS_13TeV_2016_dil_absDivBinWidth_rho_0p3_0p45
+	CMS_13TeV_2016_dil_absDivBinWidth_rho_0p45_0p7 = CMS_13TeV_2016_dil_absDivBinWidth_rho_0p45_0p7
+	CMS_13TeV_2016_dil_absDivBinWidth_rho_0p7_1p0 = CMS_13TeV_2016_dil_absDivBinWidth_rho_0p7_1p0
 
-	ATLAS_8TeV_2012_lj_norm_rho_0p0_0p25 = ATLAS_8TeV_2012_lj_norm_rho_0p0_0p25
+	#ATLAS_8TeV_2012_lj_norm_rho_0p0_0p25 = ATLAS_8TeV_2012_lj_norm_rho_0p0_0p25
 	ATLAS_8TeV_2012_lj_norm_rho_0p25_0p325 = ATLAS_8TeV_2012_lj_norm_rho_0p25_0p325
 	ATLAS_8TeV_2012_lj_norm_rho_0p325_0p425 = ATLAS_8TeV_2012_lj_norm_rho_0p325_0p425
 	ATLAS_8TeV_2012_lj_norm_rho_0p425_0p525 = ATLAS_8TeV_2012_lj_norm_rho_0p425_0p525
