@@ -4,3 +4,6 @@
 [submodule "Convino"]
 	path = Convino
 	url = https://github.com/TTJMass/Convino.git
+[submodule "mtpole-ttj"]
+	path = mtpole-ttj
+	url = https://github.com/TTJMass/mtpole-ttj.git
