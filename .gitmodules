@@ -1,3 +1,6 @@
 [submodule "theory-data"]
 	path = theory-data
 	url = https://gitlab.cern.ch/ttjmass/theory-data
+[submodule "Convino"]
+	path = Convino
+	url = https://github.com/TTJMass/Convino.git
