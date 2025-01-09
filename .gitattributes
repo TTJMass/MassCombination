@@ -1,0 +1,2 @@
+powheg_generations_8TeV/**/* filter=lfs diff=lfs merge=lfs -text
+powheg_generations/**/* filter=lfs diff=lfs merge=lfs -text
