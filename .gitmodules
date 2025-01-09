@@ -1,0 +1,3 @@
+[submodule "theory-data"]
+	path = theory-data
+	url = https://gitlab.cern.ch/ttjmass/theory-data
