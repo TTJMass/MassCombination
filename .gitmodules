@@ -7,3 +7,6 @@
 [submodule "mtpole-ttj"]
 	path = mtpole-ttj
 	url = https://github.com/TTJMass/mtpole-ttj.git
+[submodule "MtopSummaryPlot"]
+	path = MtopSummaryPlot
+	url = https://github.com/TTJMass/MtopSummaryPlot.git

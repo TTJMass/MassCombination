@@ -20,3 +20,8 @@ The theoretical calculations are stored in `powheg_generations/` and `powheg_gen
 The files are managed via [Git-LFS](https://git-lfs.com/).
 
 ### Experiment
+Experimental inputs are handled in `Inputs_ATLAS` and `Inputs_CMS`.
+They are linked to the `/Convino` submodule for the fits. Correlations are defined therein.
+
+## How to run
+Please follow the instructions in each subrepo.
