@@ -1,12 +1,16 @@
 [submodule "theory-data"]
 	path = theory-data
 	url = https://gitlab.cern.ch/ttjmass/theory-data
+	update = merge # <-- this is what you need to add
 [submodule "Convino"]
 	path = Convino
 	url = https://github.com/TTJMass/Convino.git
+	update = merge # <-- this is what you need to add
 [submodule "mtpole-ttj"]
 	path = mtpole-ttj
 	url = https://github.com/TTJMass/mtpole-ttj.git
+	update = merge # <-- this is what you need to add
 [submodule "MtopSummaryPlot"]
 	path = MtopSummaryPlot
 	url = https://github.com/TTJMass/MtopSummaryPlot.git
+	update = merge # <-- this is what you need to add
