@@ -1,3 +1,6 @@
 *.vscode
 *.DS_Store
 plots*
+Production/
+*CMSSW*
+*__pycache__*
