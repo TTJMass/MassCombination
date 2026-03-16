@@ -129,11 +129,12 @@ error = {jobdir}/logs/{jobname}.err
 log = {jobdir}/logs/{jobname}.log
 request_cpus = 1
 request_memory = 2000MB
-+JobFlavour = "nextweek"
++MaxRuntime = 1209600
 +AccountingGroup = "group_u_CMST3.all"
 queue
 """
-
+# do 2 weeks instead of nextweek
+# +JobFlavour = "nextweek"
 
 SH_TEMPLATE = """#!/usr/bin/env bash
 set -euo pipefail
@@ -202,7 +203,7 @@ PY
 fi
 
 echo "Running convino"
-./convino -d "$EXTRACTED_SETUP_DIR"/rho_config.txt --prefix "$PREFIX" --neyman &> convino_run.log || true
+./convino -d "$EXTRACTED_SETUP_DIR"/rho_config.txt --prefix "$PREFIX" --noImpacts --neyman &> convino_run.log || true
 
 # find result file (try common patterns)
 RESULT="$(ls ${{PREFIX}}*result*.txt 2>/dev/null | head -n1 || true)"
@@ -250,7 +251,26 @@ def main():
     parser.add_argument('--max-jobs', type=int, default=None, help='Optional: maximum number of job files to generate (for testing)')
     parser.add_argument('--reuse-tarball', action='store_true', help='If set, reuse existing tarball when components are unchanged')
     parser.add_argument('--force-tarball', action='store_true', help='Force recreation of the tarball even if metadata matches')
+    parser.add_argument('--only-nominal', action='store_true', help='Only create the single nominal job and skip creating the scan jobs')
+    parser.add_argument('--do-impacts', action='store_true', help='Run also impacts')
     args = parser.parse_args()
+
+
+    # do impacts only works with only nominal
+    if args.do_impacts and not args.only_nominal:
+        raise SystemExit('Error: --do-impacts requires --only-nominal to be set')
+
+    # if args.do_impacts:
+    #     # make sure the last "/" is not present
+    #     if args.jobs_folder.endswith('/'):
+    #         args.jobs_folder = args.jobs_folder[:-1]
+    #     if args.eos_output_path.endswith('/'):
+    #         print (f"Stripping trailing / from eos_output_path: {args.eos_output_path}")
+    #         args.eos_output_path = args.eos_output_path[:-1]
+    #     # append _impacts to jobs folder and eos output path
+    #     args.jobs_folder = os.path.join(args.jobs_folder, '_impacts')
+    #     args.eos_output_path = os.path.join(args.eos_output_path, '_impacts')
+    #     print (f"Impacts requested: modified jobs_folder: {args.jobs_folder}, eos_output_path: {args.eos_output_path}")
 
     setup_path = os.path.abspath(args.setup_path)
     if not os.path.isdir(setup_path):
@@ -258,8 +278,9 @@ def main():
 
     extra_file = os.path.join(setup_path, 'extra_correlations.txt')
     entries = parse_extra_correlations(extra_file)
-    if len(entries) == 0:
-        raise SystemExit('No correlation mappings found in ' + extra_file)
+    if not args.only_nominal and len(entries) == 1:
+        if len(entries) == 0:
+            raise SystemExit('No correlation mappings found in ' + extra_file)
 
     os.makedirs(args.jobs_folder, exist_ok=True)
     os.makedirs(os.path.join(args.jobs_folder, 'logs'), exist_ok=True)
@@ -315,78 +336,82 @@ def main():
 
     job_count = 0
 
-    for key, info in entries.items():
-        lhs = info['lhs']
-        rhs = info['rhs']
-        # create a correlation-specific subfolder inside the jobs folder
-        parent_jobdir = os.path.abspath(args.jobs_folder)
-        corr_name = sanitize(f"{lhs}__{rhs}")
-        corr_dir = os.path.join(parent_jobdir, corr_name)
-        os.makedirs(corr_dir, exist_ok=True)
-        os.makedirs(os.path.join(corr_dir, 'logs'), exist_ok=True)
+    if not args.only_nominal:
+        for key, info in entries.items():
+            lhs = info['lhs']
+            rhs = info['rhs']
+            # create a correlation-specific subfolder inside the jobs folder
+            parent_jobdir = os.path.abspath(args.jobs_folder)
+            corr_name = sanitize(f"{lhs}__{rhs}")
+            corr_dir = os.path.join(parent_jobdir, corr_name)
+            os.makedirs(corr_dir, exist_ok=True)
+            os.makedirs(os.path.join(corr_dir, 'logs'), exist_ok=True)
 
-        for val in values:
-            jobname = sanitize(f"{os.path.basename(setup_path)}__{lhs}__{rhs}__{val}")
-            prefix = jobname
-            # create one subfolder per job inside the correlation folder
-            jobdir = os.path.join(corr_dir, jobname)
-            os.makedirs(jobdir, exist_ok=True)
-            os.makedirs(os.path.join(jobdir, 'logs'), exist_ok=True)
-            sh_path = os.path.join(jobdir, jobname + '.sh')
-            htc_path = os.path.join(jobdir, jobname + '.htc')
+            for val in values:
+                jobname = sanitize(f"{os.path.basename(setup_path)}__{lhs}__{rhs}__{val}")
+                prefix = jobname
+                # create one subfolder per job inside the correlation folder
+                jobdir = os.path.join(corr_dir, jobname)
+                os.makedirs(jobdir, exist_ok=True)
+                os.makedirs(os.path.join(jobdir, 'logs'), exist_ok=True)
+                sh_path = os.path.join(jobdir, jobname + '.sh')
+                htc_path = os.path.join(jobdir, jobname + '.htc')
 
-            # compute relative tarball path from this jobdir so the wrapper can find it
-            rel_tar = os.path.relpath(tarball_name, start=jobdir)
+                # compute relative tarball path from this jobdir so the wrapper can find it
+                rel_tar = os.path.relpath(tarball_name, start=jobdir)
 
-            with open(sh_path, 'w') as shf:
-                shf.write(SH_TEMPLATE.format(jobname=jobname,
-                                             param_key=key,
-                                             lhs=lhs,
-                                             rhs=rhs,
-                                             setup_dir=setup_path,
-                                             eos_outdir=os.path.join(os.path.abspath(args.eos_output_path), os.path.basename(setup_path), sanitize(f"{lhs}__{rhs}"), str(val)),
-                                            tarball_name=rel_tar,
-                                            tarball_basename=os.path.basename(tarball_name),
-                                             setup_basename=os.path.basename(setup_path),
-                                             value=repr(val),
-                                             prefix=prefix,
-                                             exp=sanitize(f"{args.batch_name}__{jobname}"),
-                                             thinputpath=os.path.join('mtpole-ttj','inputs','theory_path.txt')))
+                with open(sh_path, 'w') as shf:
+                    shf.write(SH_TEMPLATE.format(jobname=jobname,
+                                                 param_key=key,
+                                                 lhs=lhs,
+                                                 rhs=rhs,
+                                                 setup_dir=setup_path,
+                                                 eos_outdir=os.path.join(os.path.abspath(args.eos_output_path), os.path.basename(setup_path), sanitize(f"{lhs}__{rhs}"), str(val)),
+                                                tarball_name=rel_tar,
+                                                tarball_basename=os.path.basename(tarball_name),
+                                                 setup_basename=os.path.basename(setup_path),
+                                                 value=repr(val),
+                                                 prefix=prefix,
+                                                 exp=sanitize(f"{args.batch_name}__{jobname}"),
+                                                 thinputpath=os.path.join('mtpole-ttj','inputs','theory_path.txt')))
 
-            # make executable
-            st = os.stat(sh_path)
-            os.chmod(sh_path, st.st_mode | stat.S_IEXEC)
+                # make executable
+                st = os.stat(sh_path)
+                os.chmod(sh_path, st.st_mode | stat.S_IEXEC)
 
-            # HTCondor submit file
-            # use absolute paths so condor_submit can be called from any cwd
-            abs_tar = os.path.abspath(tarball_name)
-            abs_sh = os.path.abspath(sh_path)
-            transfer_inputs = abs_tar
+                # HTCondor submit file
+                # use absolute paths so condor_submit can be called from any cwd
+                abs_tar = os.path.abspath(tarball_name)
+                abs_sh = os.path.abspath(sh_path)
+                transfer_inputs = abs_tar
 
-            with open(htc_path, 'w') as htf:
-                htf.write(HTC_TEMPLATE.format(script_name=abs_sh,
-                                              transfer_input_files=transfer_inputs,
-                                              jobdir=jobdir,
-                                              jobname=jobname))
+                with open(htc_path, 'w') as htf:
+                    htf.write(HTC_TEMPLATE.format(script_name=abs_sh,
+                                                  transfer_input_files=transfer_inputs,
+                                                  jobdir=jobdir,
+                                                  jobname=jobname))
 
-            # copy tarball and shell to job folder (they will be transfer_input_files)
-            # do not duplicate the tarball per-correlation; condor will transfer the
-            # package referenced relatively. Only ensure the shell script is present
-            dst_sh = os.path.join(jobdir, os.path.basename(sh_path))
-            if os.path.abspath(sh_path) != os.path.abspath(dst_sh):
-                shutil.copy(sh_path, dst_sh)
+                # copy tarball and shell to job folder (they will be transfer_input_files)
+                # do not duplicate the tarball per-correlation; condor will transfer the
+                # package referenced relatively. Only ensure the shell script is present
+                dst_sh = os.path.join(jobdir, os.path.basename(sh_path))
+                if os.path.abspath(sh_path) != os.path.abspath(dst_sh):
+                    shutil.copy(sh_path, dst_sh)
 
-            job_count += 1
-            if args.max_jobs and job_count >= args.max_jobs:
-                print(f"Reached max-jobs={args.max_jobs}; stopping generation")
-                return
+                job_count += 1
+                if args.max_jobs and job_count >= args.max_jobs:
+                    print(f"Reached max-jobs={args.max_jobs}; stopping generation")
+                    return
 
     # Create a single global nominal job that uses the input correlations as-is
     # (do not modify extra_correlations.txt). We set NEWVAL to the sentinel
     # NOCHANGE so the wrapper skips the edit step.
-    first_entry = next(iter(entries.values()))
-    lhs0 = first_entry['lhs']
-    rhs0 = first_entry['rhs']
+    # if we run only-nominal the entry doesnt exist, so just write anything dummy to lhs0/rhs0
+    lhs0 = 'DUMMY_LHS'
+    rhs0 = 'DUMMY_RHS'
+    # first_entry = next(iter(entries.values()))
+    # lhs0 = first_entry['lhs']
+    # rhs0 = first_entry['rhs']
 
     parent_jobdir = os.path.abspath(args.jobs_folder)
     nominal_dir = os.path.join(parent_jobdir, 'nominal')
@@ -405,19 +430,36 @@ def main():
     rel_tar = os.path.relpath(tarball_name, start=jobdir)
 
     with open(sh_path, 'w') as shf:
-        shf.write(SH_TEMPLATE.format(jobname=jobname,
-                                     param_key='NOMINAL',
-                                     lhs=lhs0,
-                                     rhs=rhs0,
-                                     setup_dir=setup_path,
-                                     eos_outdir=os.path.join(os.path.abspath(args.eos_output_path), os.path.basename(setup_path), 'nominal'),
-                                     tarball_name=rel_tar,
-                                     tarball_basename=os.path.basename(tarball_name),
-                                     setup_basename=os.path.basename(setup_path),
-                                     value='NOCHANGE',
-                                     prefix=prefix,
-                                     exp=sanitize(f"{args.batch_name}__{jobname}"),
-                                     thinputpath=os.path.join('mtpole-ttj','inputs','theory_path.txt')))
+        if args.do_impacts:
+            print ("Creating nominal job with impacts")
+            shf.write(SH_TEMPLATE.format(jobname=jobname,
+                                        param_key='NOMINAL',
+                                        lhs=lhs0,
+                                        rhs=rhs0,
+                                        setup_dir=setup_path,
+                                        eos_outdir=os.path.join(os.path.abspath(args.eos_output_path), os.path.basename(setup_path), 'nominal'),
+                                        tarball_name=rel_tar,
+                                        tarball_basename=os.path.basename(tarball_name),
+                                        setup_basename=os.path.basename(setup_path),
+                                        value='NOCHANGE',
+                                        prefix=prefix,
+                                        exp=sanitize(f"{args.batch_name}__{jobname}"),
+                                        thinputpath=os.path.join('mtpole-ttj','inputs','theory_path.txt')).replace('--noImpacts ',' '))
+        else:
+            shf.write(SH_TEMPLATE.format(jobname=jobname,
+                                        param_key='NOMINAL',
+                                        lhs=lhs0,
+                                        rhs=rhs0,
+                                        setup_dir=setup_path,
+                                        eos_outdir=os.path.join(os.path.abspath(args.eos_output_path), os.path.basename(setup_path), 'nominal'),
+                                        tarball_name=rel_tar,
+                                        tarball_basename=os.path.basename(tarball_name),
+                                        setup_basename=os.path.basename(setup_path),
+                                        value='NOCHANGE',
+                                        prefix=prefix,
+                                        exp=sanitize(f"{args.batch_name}__{jobname}"),
+                                        thinputpath=os.path.join('mtpole-ttj','inputs','theory_path.txt')))
+
 
     st = os.stat(sh_path)
     os.chmod(sh_path, st.st_mode | stat.S_IEXEC)
@@ -427,9 +469,9 @@ def main():
     transfer_inputs = abs_tar
     with open(htc_path, 'w') as htf:
         htf.write(HTC_TEMPLATE.format(script_name=abs_sh,
-                                      transfer_input_files=transfer_inputs,
-                                      jobdir=jobdir,
-                                      jobname=jobname))
+                                transfer_input_files=transfer_inputs,
+                                jobdir=jobdir,
+                                jobname=jobname))
 
     dst_sh = os.path.join(jobdir, os.path.basename(sh_path))
     if os.path.abspath(sh_path) != os.path.abspath(dst_sh):
