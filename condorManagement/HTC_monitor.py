@@ -185,6 +185,10 @@ def monitor(options, log='', local=False):
                  err_files = sorted(glob.glob(err_files_wildcard))
                #   print (err_files_wildcard, err_files)
                #   if (len(err_files) > 0) and (os.stat(err_files[-1]).st_size > 0):
+                 if not (err_files and os.path.isfile(err_files[-1]) and os.stat(err_files[-1]).st_size > 0):
+                     if options.verbose:
+                        print ('output file exists but no err file found:', os.path.relpath(output_file))
+                        continue
                  if "No result file found for prefix" in open(err_files[-1]).read():
 
                     EXE('rm -f '+output_file, verbose=options.verbose, dry_run=options.dry_run)
