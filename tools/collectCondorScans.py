@@ -23,6 +23,14 @@ import re
 from collections import defaultdict
 from typing import Dict, List, Optional
 
+import matplotlib
+# Force the non-interactive Agg backend before pyplot is used. Without this,
+# matplotlib defaults to whatever GUI toolkit is available (TkAgg here), so
+# every plt.figure()/close() spins up a real Tk window+widgets even though we
+# only ever call savefig() -- profiling showed this was ~85% of this script's
+# runtime (2854s of 3343s for a 118-scan run) spent inside _tkinter.tkapp
+# calls, not in any actual plotting work.
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
 import mplhep as hep
@@ -30,7 +38,9 @@ hep.style.use(hep.style.CMS)
 
 
 RAW_MT_RE = re.compile(
-    r"raw\s+mt\s*=\s*([0-9.+-eE]+)\s*\+/-\s*([0-9.+-eE]+)\s*\(exp\)\s*\+/-\s*([0-9.+-eE]+)\s*\(PDF\)",
+    r"raw\s+mt\s*=\s*([0-9.+-eE]+)\s*\+/-\s*([0-9.+-eE]+)\s*\(exp\)\s*"
+    r"(?:\+/-\s*[0-9.+-eE]+\s*\(interp\)\s*)?"
+    r"\+/-\s*([0-9.+-eE]+)\s*\(PDF\)",
     flags=re.IGNORECASE,
 )
 
@@ -99,6 +109,51 @@ def parse_fit_log(path: str) -> Optional[dict]:
     }
 
 
+def find_results_json(directory: str) -> Optional[str]:
+    """Find a `results.json` written by doFit.py's `_write_results_json`.
+
+    doFit.py writes it under a path relative to its cwd: `output/<subdir>/results.json`
+    (pyconvino stack) or `plots_fit/<subdir>/results.json` (old mtpole-ttj stack, if
+    ever added there). Returns the most recently modified match, or None.
+    """
+    matches = []
+    for sub in ('output', 'plots_fit'):
+        matches.extend(glob.glob(os.path.join(directory, sub, '**', 'results.json'), recursive=True))
+    if not matches:
+        return None
+    matches.sort(key=lambda p: os.path.getmtime(p), reverse=True)
+    return os.path.abspath(matches[0])
+
+
+def parse_results_json(path: str) -> Optional[dict]:
+    """Parse a doFit.py `results.json` and extract central and uncertainties.
+
+    Returns dict with keys: central, exp_unc, pdf_unc, total_unc, path
+    or None if the expected fields are missing/malformed.
+    """
+    try:
+        with open(path, 'r') as fh:
+            data = json.load(fh)
+    except Exception:
+        return None
+
+    try:
+        central = float(data['mass'][0])
+        exp_unc = float(data['mass_unc_exp'][0])
+        pdf_unc = float(data['mass_unc_PDF'][0])
+        total_unc = float(data['mass_unc_total'][0])
+    except (KeyError, IndexError, TypeError, ValueError):
+        return None
+
+    return {
+        'central': central,
+        'exp_unc': exp_unc,
+        'pdf_unc': pdf_unc,
+        'total_unc': total_unc,
+        'path': os.path.abspath(path),
+    }
+
+
 def _find_sublist_index(hay: List[str], needle: List[str]) -> int:
     """Return index where `needle` sequence appears in `hay`, or -1."""
     if not needle:
@@ -153,7 +208,15 @@ def infer_scan_and_value_from_path(path: str, jobs_folder: Optional[str], eos_ou
                         scanname = rel[0]
                     return scanname, value
                 else:
-                    # no numeric token found: try to pick correlation name as second element if present
+                    # No numeric token found -- this is the nominal job. Detect it by the
+                    # literal 'nominal' directory name rather than a fixed index: whether
+                    # `eos_output` points at the parent of all ConvinoConfigName dirs
+                    # (rel = [ConfigName, 'nominal', 'fit.log']) or directly at a single
+                    # config dir (rel = ['nominal', 'fit.log']), the 'nominal' component
+                    # sits at a different index -- guessing rel[1] silently picked up
+                    # 'fit.log' in the single-config case instead of 'nominal'.
+                    if any(p.lower() == 'nominal' for p in rel):
+                        return 'nominal', None
                     if len(rel) >= 2:
                         scanname = rel[1]
                     else:
@@ -213,6 +276,52 @@ def infer_scan_and_value_from_path(path: str, jobs_folder: Optional[str], eos_ou
     return scanname, value
 
 
+def find_config_name(path: str, base_dirs: List[str]) -> Optional[str]:
+    """Return the ConvinoConfigName a path belongs to.
+
+    `base_dirs` (i.e. --eos-output) can point at either:
+      - the parent of several ConvinoConfigName dirs
+        (`<eos_output>/<ConvinoConfigName>/<CorrelationName>/<Value>/...`), or
+      - a single ConvinoConfigName dir directly
+        (`<eos_output>/<CorrelationName>/<Value>/...`).
+    These are distinguished by checking whether `bd` itself has an immediate
+    'nominal' subdirectory (true only for an actual config dir -- the parent
+    of several configs doesn't have one directly under it, only under each of
+    its children). Blindly taking the first path component under `bd` (as if
+    `bd` were always the multi-config parent) would return a *CorrelationName*
+    as the "config" in the single-config case, silently fragmenting every
+    scan into its own bogus single-entry config group.
+    """
+    abspath = os.path.abspath(path)
+    for bd in base_dirs:
+        if not bd:
+            continue
+        bd_abs = os.path.abspath(bd)
+        if os.path.isdir(os.path.join(bd_abs, 'nominal')):
+            return os.path.basename(bd_abs)
+        rel = os.path.relpath(abspath, bd_abs)
+        if rel.startswith('..'):
+            continue
+        parts = [p for p in rel.split(os.sep) if p not in ('', '.')]
+        if parts:
+            return parts[0]
+    return None
+
+
+def _is_nominal_scan(name: str) -> bool:
+    """True if `name` refers to a (possibly config-prefixed) 'nominal' scan bucket."""
+    return name.rsplit('/', 1)[-1].lower() == 'nominal'
+
+
+def _sanitize_for_filename(name: str) -> str:
+    """Make a scan name safe to use as a single filename component.
+
+    Scan names are "<ConvinoConfigName>/<correlation>" (see `collect_results`);
+    the '/' must not reach the filesystem as a path separator.
+    """
+    return name.replace(os.sep, '__')
+
+
 def collect_results(jobs_folder: str, eos_output: Optional[str], verbose: bool = False, debug: bool = False) -> Dict[str, dict]:
     """Collect all parsed fit.log results and organize by scan.
 
@@ -242,14 +351,33 @@ def collect_results(jobs_folder: str, eos_output: Optional[str], verbose: bool =
         f = os.path.join(os.path.dirname(convino_path), 'fit.log')
         parsed = None
         noninvert = False
+
+        # Prefer the structured results.json written by doFit.py's
+        # _write_results_json (ships under output/<subdir>/ once the
+        # Condor job's cp step copies the "output" folder) -- more robust
+        # than regex-parsing the stdout log, and doesn't break every time
+        # a print() format in fit_object.py changes.
+        json_path = find_results_json(os.path.dirname(convino_path))
+        if json_path:
+            parsed = parse_results_json(json_path)
+            if parsed is None and debug:
+                print('DEBUG: found results.json but failed to parse:', json_path)
+
         # if fit.log exists, parse it and assume invertible (skip reading convino.log)
-        if os.path.isfile(f):
+        if parsed is None and os.path.isfile(f):
             parsed = parse_fit_log(f)
-        else:
+        if parsed is None and not os.path.isfile(f):
             # no fit.log -> inspect convino.log for non-invertible marker
             try:
                 txt = open(convino_path, 'r', errors='ignore').read()
-                if 'RobustInvert: Cholesky failed' in txt:
+                if ("Result written to" in txt) or ("Result exported to" in txt) or ("done. saved output to" in txt):
+                    noninvert = False
+                elif ('RobustInvert: Cholesky failed' in txt) \
+                    or ("combiner::combinePriv: external correlations non invertible or not positive definite" in txt) \
+                    or ("Error in <TDecompChol::Decompose()>: matrix not positive definite" in txt) \
+                    or ("not positive definite" in txt) \
+                    or ("singular or ill-conditioned to invert" in txt) \
+                    or ("estimate-block of the Hessian is singular" in txt):
                     noninvert = True
             except Exception:
                 if debug:
@@ -261,7 +389,18 @@ def collect_results(jobs_folder: str, eos_output: Optional[str], verbose: bool =
                 print('DEBUG: no fit result and not non-invertible for', convino_path)
             continue
 
-        scanname, value = infer_scan_and_value_from_path(f if os.path.isfile(f) else convino_path, jobs_folder, eos_output)
+        key_path_for_scan = f if os.path.isfile(f) else convino_path
+        scanname, value = infer_scan_and_value_from_path(key_path_for_scan, jobs_folder, eos_output)
+
+        # Prefix the scan name with its ConvinoConfigName (e.g.
+        # "Combination_ATLAS813CMS13_corrV2/<correlation>"). Different combination
+        # setups (corrV2, noCorr, corrMore, ...) live side by side under the same
+        # eos_output base and can reuse identical correlation-pair names, or -- for
+        # 'nominal' -- the exact same bare key; without this prefix their entries
+        # (and, worse, their 'nominal' jobs) silently collide into one scan bucket.
+        config = find_config_name(key_path_for_scan, bases)
+        if config:
+            scanname = f"{config}/{scanname}"
 
         entry = {
             'value': value,
@@ -653,8 +792,9 @@ def plot_scan(scanname: str, scan: dict, outdir: str, unblind: bool = False) -> 
         _add_legend(ax_l_top)
 
     os.makedirs(outdir, exist_ok=True)
-    outfn_png = os.path.join(outdir, f'scan_{scanname}.png')
-    outfn_pdf = os.path.join(outdir, f'scan_{scanname}.pdf')
+    safe_name = _sanitize_for_filename(scanname)
+    outfn_png = os.path.join(outdir, f'scan_{safe_name}.png')
+    outfn_pdf = os.path.join(outdir, f'scan_{safe_name}.pdf')
     # reduce outer margins to give more room for the two columns
     fig.subplots_adjust(top=0.95, bottom=0.05, left=0.06, right=0.97)
     fig.savefig(outfn_png)
@@ -669,10 +809,17 @@ def normalize_scans(scans: Dict[str, dict], verbose: bool = False) -> None:
     """Ensure each scan has a `nominal` entry.
 
     Rules:
-      - If any entry in `entries` has a path whose basename is 'fit.log' or
-        has value==None, and `nominal` is empty, promote that entry to `nominal`.
+      - If any entry in `entries` has value==None, and `nominal` is empty,
+        promote that entry to `nominal`.
       - If `nominal` exists but is not present in `entries`, append it to `entries`.
     This modifies `scans` in-place.
+
+    Note: this used to also match entries whose path basename is 'fit.log',
+    but every entry's path is literally a fit.log (or results.json) file now
+    -- that check matched unconditionally and silently promoted whichever
+    entry happened to sort first (e.g. correlation value -1.0) as a fake
+    nominal. value==None is the only real signal of "this entry has no
+    correlation value" (i.e. is actually the nominal job).
     """
     for sname, sdict in scans.items():
         if not isinstance(sdict, dict):
@@ -684,9 +831,8 @@ def normalize_scans(scans: Dict[str, dict], verbose: bool = False) -> None:
         if nominal is None:
             cand_idx = None
             for i, e in enumerate(entries):
-                p = e.get('path', '') if isinstance(e, dict) else ''
                 val = e.get('value') if isinstance(e, dict) else None
-                if os.path.basename(p) == 'fit.log' or val is None:
+                if val is None:
                     cand_idx = i
                     break
             if cand_idx is not None:
@@ -707,41 +853,54 @@ def normalize_scans(scans: Dict[str, dict], verbose: bool = False) -> None:
 
 
 def propagate_global_nominal(scans: Dict[str, dict], verbose: bool = False) -> None:
-    """If a top-level scan named 'nominal' exists, use its nominal entry as the
-    common nominal and set it for all other scans that don't already have one.
+    """Use each ConvinoConfigName's own 'nominal' scan as the shared nominal for
+    the other scans belonging to that same config.
+
+    Scan keys are "<ConvinoConfigName>/<correlation>" (see `collect_results`'s
+    config-prefixing). Grouping by that prefix (instead of a single global
+    'nominal' scan across all configs) is required: different combination
+    setups (corrV2, noCorr, corrMore, ...) each ran their own nominal fit and
+    must not borrow one another's -- doing so silently mixes central values
+    from unrelated setups into a scan's "same as nominal" comparison.
     """
-    global_scan = scans.get('nominal') or scans.get('Nominal') or scans.get('fit.log')
-    if not global_scan:
-        if verbose:
-            print("propagate_global_nominal: no global nominal scan found")
-        return
+    groups: Dict[str, List[str]] = defaultdict(list)
+    for name in scans:
+        config = name.rsplit('/', 1)[0] if '/' in name else ''
+        groups[config].append(name)
 
-    # find the representative nominal entry in the global_scan
-    rep = None
-    if isinstance(global_scan, dict):
-        rep = global_scan.get('nominal') or (global_scan.get('entries')[0] if global_scan.get('entries') else None)
-
-    if not rep:
-        if verbose:
-            print("propagate_global_nominal: no nominal entry found in global nominal scan")
-        return
-
-    for sname, sdict in scans.items():
-        if sname == 'nominal':
+    for config, names in groups.items():
+        nominal_key = f"{config}/nominal" if config else 'nominal'
+        global_scan = scans.get(nominal_key)
+        if not global_scan:
+            if verbose:
+                print(f"propagate_global_nominal: no nominal scan found for config '{config}'")
             continue
-        if not isinstance(sdict, dict):
+
+        # find the representative nominal entry for this config
+        rep = None
+        if isinstance(global_scan, dict):
+            rep = global_scan.get('nominal') or (global_scan.get('entries')[0] if global_scan.get('entries') else None)
+
+        if not rep:
+            if verbose:
+                print(f"propagate_global_nominal: no nominal entry found for config '{config}'")
             continue
-        cur_nom = sdict.get('nominal')
-        # if cur_nom is None:
-        sdict['nominal'] = rep
-        # also ensure present in entries
-        entries = sdict.get('entries') or []
-        paths = [e.get('path', '') for e in entries if isinstance(e, dict)]
-        if rep.get('path', '') not in paths:
-            entries.append(rep)
-            sdict['entries'] = entries
-        if verbose:
-            print(f"propagate_global_nominal: set nominal for {sname} from global nominal")
+
+        for name in names:
+            if name == nominal_key:
+                continue
+            sdict = scans[name]
+            if not isinstance(sdict, dict):
+                continue
+            sdict['nominal'] = rep
+            # also ensure present in entries
+            entries = sdict.get('entries') or []
+            paths = [e.get('path', '') for e in entries if isinstance(e, dict)]
+            if rep.get('path', '') not in paths:
+                entries.append(rep)
+                sdict['entries'] = entries
+            if verbose:
+                print(f"propagate_global_nominal: set nominal for {name} from {nominal_key}")
 
 
 def plot_2d(scans: Dict[str, dict], outdir: str):
@@ -920,7 +1079,7 @@ def compute_scan_correlations(scans: Dict[str, dict], verbose: bool = False) -> 
     """
     rows = []
     for name, s in scans.items():
-        if name.lower() == 'nominal':
+        if _is_nominal_scan(name):
             continue
         if not isinstance(s, dict):
             continue
@@ -973,7 +1132,7 @@ def print_top_deviations(scans: Dict[str, dict], topn: int = 10, unblind: bool =
     """
     rows = []
     for name, s in scans.items():
-        if name.lower() == 'nominal':
+        if _is_nominal_scan(name):
             continue
         if not isinstance(s, dict):
             continue
@@ -1019,7 +1178,7 @@ def print_top_uncertainty_deviations(scans: Dict[str, dict], topn: int = 10) -> 
     """
     rows = []
     for name, s in scans.items():
-        if name.lower() == 'nominal':
+        if _is_nominal_scan(name):
             continue
         if not isinstance(s, dict):
             continue
@@ -1143,7 +1302,7 @@ def create_latex_summary_table(scans: Dict[str, dict], outdir: str, unblind: boo
 
 
     for name in sorted_names:
-        if "fit.log" in name.lower() or name.lower() == "nominal":
+        if "fit.log" in name.lower() or _is_nominal_scan(name):
             continue
         s = scans[name]
         if not isinstance(s, dict):
@@ -1181,8 +1340,13 @@ def create_latex_summary_table(scans: Dict[str, dict], outdir: str, unblind: boo
         neg_delta_str = f"{max_neg_delta:.3f}" if max_neg_delta != float('inf') else 'n/a'
         pos_unc_str = f"{max_pos_unc_diff:.3f}" if max_pos_unc_diff != float('-inf') else 'n/a'
         neg_unc_str = f"{max_neg_unc_diff:.3f}" if max_neg_unc_diff != float('inf') else 'n/a'
+        # drop the "ConvinoConfigName/" prefix for display -- it's identical
+        # on every row of this table (one config per collectCondorScans.py run)
+        # and only bloats each line; the prefix is still needed internally to
+        # keep different configs' scans/nominal from colliding (see collect_results).
+        display_name = name.rsplit('/', 1)[-1]
         # take care of backspacing underscores in name
-        name_escaped = name.replace('_', r'\_')
+        name_escaped = display_name.replace('_', r'\_')
         # now let's use three different colors: black CMS, red ATLAS 8 TeV and blue ATLAS 13 TeV
         # we split each name in the middle with "__" and then color both sides accordingly
         name_colored = ''
@@ -1248,6 +1412,10 @@ def main():
 
     if scans is None:
         scans = collect_results(args.jobs_folder, args.eos_output, verbose=args.verbose, debug=args.debug)
+
+    # names_mapping.txt (below) and other early writes need outdir to exist;
+    # the second os.makedirs later in this function is now just a no-op safety net.
+    os.makedirs(args.outdir, exist_ok=True)
 
     # normalize structure: promote fit.log/value=None entries to nominal and ensure nominal in entries
     try:
