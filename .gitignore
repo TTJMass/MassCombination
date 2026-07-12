@@ -4,3 +4,19 @@ plots*
 Production/
 *CMSSW*
 *__pycache__*
+
+
+
+# Common heavy folders
+node_modules/
+.venv/
+venv/
+dist/
+build/
+.cache/
+*.log
+.claude/
+
+# Condor job generation output / cached packed conda env (large binaries)
+condorJobs_*/
+envCache/

@@ -116,6 +116,8 @@ def make_tarball(components, tarball_path, exclude_for_dirs=None):
 def sanitize(s):
     return re.sub(r'[^0-9A-Za-z_.-]', '_', s)
 
+# +MaxRuntime = 1209600
+
 
 HTC_TEMPLATE = """universe = vanilla
 executable = {script_name}
@@ -129,7 +131,7 @@ error = {jobdir}/logs/{jobname}.err
 log = {jobdir}/logs/{jobname}.log
 request_cpus = 1
 request_memory = 2000MB
-+MaxRuntime = 1209600
++MaxRuntime = 86400
 +AccountingGroup = "group_u_CMST3.all"
 queue
 """
@@ -150,6 +152,13 @@ OUTDIR={eos_outdir}
 TARBALL={tarball_name}
 EXEC_DIR=$(pwd)
 TAR_BASENAME={tarball_basename}
+
+# TARBALL may be a relative path (relative to EXEC_DIR); resolve it to an
+# absolute path now, before we cd into WORKDIR below, otherwise the relative
+# path no longer resolves to the right location.
+if [[ "$TARBALL" != /* ]]; then
+    TARBALL="$EXEC_DIR/$TARBALL"
+fi
 
 WORKDIR=$(mktemp -d /tmp/${{USER}}_${{JOBNAME}}_XXXX)
 echo "Working dir: $WORKDIR"
@@ -202,35 +211,88 @@ open(fn,'w').write(txt2)
 PY
 fi
 
+# Use a self-contained, locally-extracted copy of the masscomb conda env
+# instead of activating it from EOS. Under heavy concurrent batch load, EOS
+# returns transient "Input/output error" on files read during Python
+# interpreter startup (site.py, .pth processing) when thousands of jobs hit
+# the same EOS-hosted env at once; this doesn't reproduce locally (single
+# job, no contention) but caused most scan jobs to fail on the cluster.
+# The packed env is shipped like the setup tarball via Condor's own file
+# transfer (from the submit host, not read concurrently by workers off EOS),
+# so extracting/activating it here has no EOS runtime dependency at all.
+ENV_TARBALL={env_tarball_name}
+ENV_TAR_BASENAME={env_tarball_basename}
+if [[ "$ENV_TARBALL" != /* ]]; then
+    ENV_TARBALL="$EXEC_DIR/$ENV_TARBALL"
+fi
+if [ -f "$EXEC_DIR/$ENV_TAR_BASENAME" ]; then
+    ENV_TARBALL="$EXEC_DIR/$ENV_TAR_BASENAME"
+fi
+
+# Blinding salt (see mtpole-ttj-pyconvino/blinding.py): transferred as a plain
+# (non-tarball) file, same as the setup/env tarballs above. A dotfile name
+# (BLIND_SALT_NAME starts with '.') so it is never swept up by the output-copy
+# glob near the end of this script, which doesn't match dotfiles. Empty
+# BLIND_SALT_NAME (--mode old, or no --blind-salt-file configured) makes the
+# -f check below false and this becomes a no-op.
+BLIND_SALT_NAME={blind_salt_basename}
+if [ -n "$BLIND_SALT_NAME" ] && [ -f "$EXEC_DIR/$BLIND_SALT_NAME" ]; then
+    cp "$EXEC_DIR/$BLIND_SALT_NAME" .
+    export MASSCOMB_BLIND_SALT_PATH="$WORKDIR/$BLIND_SALT_NAME"
+fi
+
+mkdir -p masscomb_env
+tar -xzf "$ENV_TARBALL" -C masscomb_env
+
+# conda-pack's activate script isn't written for `set -euo pipefail`: it does
+# `type deactivate; if [ $? -eq 0 ]; then ...` (errexit fires on the `type`
+# check itself, before the `if` inspects $?), and it references $PS1 (unset
+# under nounset in a non-interactive script). Relax both for this step only.
+set +eu
+source masscomb_env/bin/activate
+conda-unpack
+set -euo pipefail
+
+# Never fall back to $HOME/.local/lib/.../site-packages: on worker nodes that
+# path lives on AFS, which is frequently unavailable/unreliable in batch jobs.
+# All Python dependencies must live inside the extracted masscomb env itself.
+export PYTHONNOUSERSITE=1
+
 echo "Running convino"
-./convino -d "$EXTRACTED_SETUP_DIR"/rho_config.txt --prefix "$PREFIX" --noImpacts --neyman &> convino_run.log || true
+{convino_cmd} &> convino_run.log || true
 
 # find result file (try common patterns)
-RESULT="$(ls ${{PREFIX}}*result*.txt 2>/dev/null | head -n1 || true)"
+RESULT="$(ls ${{PREFIX}}*result*.{result_ext} 2>/dev/null | head -n1 || true)"
 if [ -z "$RESULT" ]; then
-    RESULT="$(ls *${{PREFIX}}*.txt 2>/dev/null | grep -i result | head -n1 || true)"
+    RESULT="$(ls *${{PREFIX}}*.{result_ext} 2>/dev/null | grep -i result | head -n1 || true)"
 fi
+
+FIT_OK=0
 if [ -z "$RESULT" ]; then
-  echo "No result file found for prefix $PREFIX" >&2
+  echo "ERROR: No result file found for prefix $PREFIX — convino likely failed; check convino_run.log" >&2
 else
     echo "Found result: $RESULT"
     echo "Running doFit.py on $RESULT"
-    # initialize conda environment using the repository-local conda installation
-    if [ -f "/eos/home-s/sewuchte/MyConda/etc/profile.d/conda.sh" ]; then
-        source "/eos/home-s/sewuchte/MyConda/etc/profile.d/conda.sh" || true
+    if python3 {dofit_script}/doFit.py --exp "{exp}" --expPath "$RESULT" --thinputpath "{thinputpath}" {dofit_extra_args} &> fit.log; then
+        FIT_OK=1
+        echo "doFit.py succeeded"
     else
-        export PATH="/eos/home-s/sewuchte/MyConda/bin:$PATH"
+        echo "ERROR: doFit.py failed (exit $?) — check fit.log" >&2
     fi
-    conda activate masscomb || true
-    python3 mtpole-ttj/doFit.py --exp "{exp}" --expPath "$RESULT" --thinputpath "{thinputpath}" &> fit.log || true
 fi
 
 mkdir -p "$OUTDIR"
-# copy logs, results, pdfs and plot folders
-cp -r convino_run.log {prefix}* *.log *.txt *.pdf plot* plots rhoPlotNNLO "$OUTDIR" 2>/dev/null || true
-# create a marker file so HTC_monitor.py can detect completion
-if [ -n "$EXEC_DIR" ]; then
+# always copy logs and any outputs to aid debugging
+# "output" (new/pyconvino doFit.py: results.json, budget/interp plots, ...)
+# and "plots_fit" (old mtpole-ttj doFit.py) hold the structured fit outputs,
+# written to a path relative to $WORKDIR -- without them only the raw stdout
+# logs get shipped and results.json / plots never reach EOS.
+cp -r convino_run.log {prefix}* *.log *.txt *.pdf plot* plots rhoPlotNNLO output plots_fit "$OUTDIR" 2>/dev/null || true
+# only mark completed when the fit actually succeeded
+if [ "$FIT_OK" -eq 1 ] && [ -n "$EXEC_DIR" ]; then
     touch "$EXEC_DIR/${{JOBNAME}}.completed" || true
+else
+    echo "Fit did not succeed — .completed marker NOT written" >&2
 fi
 
 echo "Job finished, outputs copied to $OUTDIR"
@@ -253,12 +315,51 @@ def main():
     parser.add_argument('--force-tarball', action='store_true', help='Force recreation of the tarball even if metadata matches')
     parser.add_argument('--only-nominal', action='store_true', help='Only create the single nominal job and skip creating the scan jobs')
     parser.add_argument('--do-impacts', action='store_true', help='Run also impacts')
+    parser.add_argument('--mode', choices=['old', 'new'], default='old',
+                        help='Which stack to use: old (Convino C++ binary + mtpole-ttj) or new (pyconvino + mtpole-ttj-pyconvino)')
+    parser.add_argument('--convino-extra-args', default='',
+                        help='Extra arguments appended verbatim to the convino/pyconvino CLI invocation in the generated shell script.')
+    parser.add_argument('--dofit-extra-args', default='',
+                        help='Extra arguments appended verbatim to the doFit.py invocation in the generated shell script.')
+    parser.add_argument('--conda-pack-tarball',
+                        default=os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'envCache', 'masscomb_packed.tar.gz')),
+                        help='Path to a conda-pack tarball of the masscomb env, shipped to each job via Condor file '
+                             'transfer and extracted locally (avoids activating conda directly from EOS, which is '
+                             'unreliable under heavy concurrent batch load). Build it with: '
+                             'conda-pack -n masscomb -o <path> (requires no editable-installed packages in the env).')
+    parser.add_argument('--nlo-theory-json',
+                        default=os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'theory-data', 'nlo_converted.json')),
+                        help='Path to the converted NLO theory JSON (built once offline by '
+                             'mtpole-ttj-pyconvino/convertNLOTheoryData.py). When present and --mode new, it is '
+                             'shipped inside the setup tarball and used as --thinputpath, so the fit never reads '
+                             'the AFS-hosted powheg_generations ROOT files live. Ignored for --mode old.')
+    parser.add_argument('--no-ship-nlo-json', action='store_true',
+                        help='Force the legacy live-AFS ROOT theory path (inputs/theory_path.txt) even if '
+                             '--nlo-theory-json exists. For debugging/fallback only.')
+    parser.add_argument('--blind-salt-file',
+                        default=os.path.expanduser('~/.masscomb_blind_salt'),
+                        help='Path to the persistent blinding salt file (mtpole-ttj-pyconvino/blinding.py, '
+                             'generated once via generate_salt()). Shipped to each job via Condor file '
+                             'transfer and exported as MASSCOMB_BLIND_SALT_PATH so blinded (combination) '
+                             'fits can find it on the worker. Only relevant for --mode new; ignored for '
+                             '--mode old (blinding is not implemented for the legacy stack).')
     args = parser.parse_args()
 
+    conda_pack_tarball = os.path.abspath(args.conda_pack_tarball)
+    if not os.path.isfile(conda_pack_tarball):
+        raise SystemExit(
+            f'--conda-pack-tarball not found: {conda_pack_tarball}\n'
+            'Build it once with: conda-pack -n masscomb -o ' + conda_pack_tarball)
+
+    # Set mode-dependent defaults (only if user didn't explicitly pass them)
+    if args.mode == 'new':
+        old_default = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'mtpole-ttj'))
+        if os.path.abspath(args.dofit_path) == old_default:
+            args.dofit_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'mtpole-ttj-pyconvino'))
 
     # do impacts only works with only nominal
-    if args.do_impacts and not args.only_nominal:
-        raise SystemExit('Error: --do-impacts requires --only-nominal to be set')
+    # if args.do_impacts and not args.only_nominal:
+    #     raise SystemExit('Error: --do-impacts requires --only-nominal to be set')
 
     # if args.do_impacts:
     #     # make sure the last "/" is not present
@@ -285,14 +386,59 @@ def main():
     os.makedirs(args.jobs_folder, exist_ok=True)
     os.makedirs(os.path.join(args.jobs_folder, 'logs'), exist_ok=True)
 
+    # Compute mode-dependent template values
+    dofit_folder = os.path.basename(os.path.abspath(args.dofit_path))
+
+    if args.mode == 'old':
+        convino_cmd = './convino -d "$EXTRACTED_SETUP_DIR"/rho_config.txt --prefix "$PREFIX" --noImpacts --neyman'
+        if args.do_impacts:
+            convino_cmd = './convino -d "$EXTRACTED_SETUP_DIR"/rho_config.txt --prefix "$PREFIX" --neyman'
+        if args.convino_extra_args:
+            convino_cmd += ' ' + args.convino_extra_args
+        result_ext = 'txt'
+    else:  # new
+        convino_cmd = 'convino "$EXTRACTED_SETUP_DIR"/rho_config.txt --prefix "$PREFIX" --no-impacts --export npz'
+        if args.do_impacts:
+            convino_cmd = 'convino "$EXTRACTED_SETUP_DIR"/rho_config.txt --prefix "$PREFIX" --export npz'
+        if args.convino_extra_args:
+            convino_cmd += ' ' + args.convino_extra_args
+        result_ext = 'npz'
+
     # create a tarball of the setup folder + convino exe + mtpole-ttj
     tar_components = [setup_path]
     convino_exe = os.path.abspath(args.convino_exe)
-    if os.path.exists(convino_exe):
+    if args.mode == 'old' and os.path.exists(convino_exe):
         tar_components.append(convino_exe)
     mtp = os.path.abspath(args.dofit_path)
     if os.path.isdir(mtp):
         tar_components.append(mtp)
+
+    # Ship the pre-converted NLO theory JSON inside the tarball instead of
+    # reading theory-data/powheg_generations live off AFS from inside the fit
+    # (the dominant AFS load source under heavy concurrent scan-job load, see
+    # PLAN_afs_load_fix.md). Only the new (pyconvino) stack's th_xsec.py knows
+    # how to read this JSON.
+    nlo_theory_json = os.path.abspath(args.nlo_theory_json)
+    ship_nlo_json = (args.mode == 'new' and not args.no_ship_nlo_json
+                      and os.path.isfile(nlo_theory_json))
+    if args.mode == 'new' and not ship_nlo_json and not args.no_ship_nlo_json:
+        print(f"WARNING: --nlo-theory-json not found at {nlo_theory_json}; "
+              "falling back to live-AFS ROOT theory path (inputs/theory_path.txt). "
+              "Run mtpole-ttj-pyconvino/convertNLOTheoryData.py once to avoid AFS load under heavy batch load.")
+    if ship_nlo_json:
+        tar_components.append(nlo_theory_json)
+        thinputpath_value = os.path.basename(nlo_theory_json)
+    else:
+        thinputpath_value = os.path.join(dofit_folder, 'inputs', 'theory_path.txt')
+
+    blind_salt_file = os.path.abspath(os.path.expanduser(args.blind_salt_file))
+    ship_blind_salt = (args.mode == 'new' and os.path.isfile(blind_salt_file))
+    if args.mode == 'new' and not ship_blind_salt:
+        print(f"WARNING: --blind-salt-file not found at {blind_salt_file}; any combination "
+              "fit in this batch will hard-fail in blinding._load_salt() on the worker "
+              "(unless --unblind is passed via --dofit-extra-args). Run "
+              "blinding.generate_salt() once to create it.")
+    blind_salt_basename = os.path.basename(blind_salt_file) if ship_blind_salt else ''
 
     tarball_name = os.path.join(args.jobs_folder, sanitize(os.path.basename(setup_path)) + '_package.tgz')
     # exclude heavy or runtime/generated folders from mtpole-ttj to keep package small
@@ -357,8 +503,9 @@ def main():
                 sh_path = os.path.join(jobdir, jobname + '.sh')
                 htc_path = os.path.join(jobdir, jobname + '.htc')
 
-                # compute relative tarball path from this jobdir so the wrapper can find it
+                # compute relative tarball paths from this jobdir so the wrapper can find them
                 rel_tar = os.path.relpath(tarball_name, start=jobdir)
+                rel_env_tar = os.path.relpath(conda_pack_tarball, start=jobdir)
 
                 with open(sh_path, 'w') as shf:
                     shf.write(SH_TEMPLATE.format(jobname=jobname,
@@ -369,11 +516,18 @@ def main():
                                                  eos_outdir=os.path.join(os.path.abspath(args.eos_output_path), os.path.basename(setup_path), sanitize(f"{lhs}__{rhs}"), str(val)),
                                                 tarball_name=rel_tar,
                                                 tarball_basename=os.path.basename(tarball_name),
+                                                env_tarball_name=rel_env_tar,
+                                                env_tarball_basename=os.path.basename(conda_pack_tarball),
                                                  setup_basename=os.path.basename(setup_path),
                                                  value=repr(val),
                                                  prefix=prefix,
                                                  exp=sanitize(f"{args.batch_name}__{jobname}"),
-                                                 thinputpath=os.path.join('mtpole-ttj','inputs','theory_path.txt')))
+                                                 thinputpath=thinputpath_value,
+                                                 convino_cmd=convino_cmd,
+                                                 result_ext=result_ext,
+                                                 dofit_script=dofit_folder,
+                                                 dofit_extra_args=args.dofit_extra_args,
+                                                 blind_salt_basename=blind_salt_basename))
 
                 # make executable
                 st = os.stat(sh_path)
@@ -383,7 +537,9 @@ def main():
                 # use absolute paths so condor_submit can be called from any cwd
                 abs_tar = os.path.abspath(tarball_name)
                 abs_sh = os.path.abspath(sh_path)
-                transfer_inputs = abs_tar
+                transfer_inputs = abs_tar + ',' + conda_pack_tarball
+                if ship_blind_salt:
+                    transfer_inputs += ',' + blind_salt_file
 
                 with open(htc_path, 'w') as htf:
                     htf.write(HTC_TEMPLATE.format(script_name=abs_sh,
@@ -428,37 +584,31 @@ def main():
     htc_path = os.path.join(jobdir, jobname + '.htc')
 
     rel_tar = os.path.relpath(tarball_name, start=jobdir)
+    rel_env_tar = os.path.relpath(conda_pack_tarball, start=jobdir)
 
     with open(sh_path, 'w') as shf:
         if args.do_impacts:
-            print ("Creating nominal job with impacts")
-            shf.write(SH_TEMPLATE.format(jobname=jobname,
-                                        param_key='NOMINAL',
-                                        lhs=lhs0,
-                                        rhs=rhs0,
-                                        setup_dir=setup_path,
-                                        eos_outdir=os.path.join(os.path.abspath(args.eos_output_path), os.path.basename(setup_path), 'nominal'),
-                                        tarball_name=rel_tar,
-                                        tarball_basename=os.path.basename(tarball_name),
-                                        setup_basename=os.path.basename(setup_path),
-                                        value='NOCHANGE',
-                                        prefix=prefix,
-                                        exp=sanitize(f"{args.batch_name}__{jobname}"),
-                                        thinputpath=os.path.join('mtpole-ttj','inputs','theory_path.txt')).replace('--noImpacts ',' '))
-        else:
-            shf.write(SH_TEMPLATE.format(jobname=jobname,
-                                        param_key='NOMINAL',
-                                        lhs=lhs0,
-                                        rhs=rhs0,
-                                        setup_dir=setup_path,
-                                        eos_outdir=os.path.join(os.path.abspath(args.eos_output_path), os.path.basename(setup_path), 'nominal'),
-                                        tarball_name=rel_tar,
-                                        tarball_basename=os.path.basename(tarball_name),
-                                        setup_basename=os.path.basename(setup_path),
-                                        value='NOCHANGE',
-                                        prefix=prefix,
-                                        exp=sanitize(f"{args.batch_name}__{jobname}"),
-                                        thinputpath=os.path.join('mtpole-ttj','inputs','theory_path.txt')))
+            print("Creating nominal job with impacts")
+        shf.write(SH_TEMPLATE.format(jobname=jobname,
+                                    param_key='NOMINAL',
+                                    lhs=lhs0,
+                                    rhs=rhs0,
+                                    setup_dir=setup_path,
+                                    eos_outdir=os.path.join(os.path.abspath(args.eos_output_path), os.path.basename(setup_path), 'nominal'),
+                                    tarball_name=rel_tar,
+                                    tarball_basename=os.path.basename(tarball_name),
+                                    env_tarball_name=rel_env_tar,
+                                    env_tarball_basename=os.path.basename(conda_pack_tarball),
+                                    setup_basename=os.path.basename(setup_path),
+                                    value='NOCHANGE',
+                                    prefix=prefix,
+                                    exp=sanitize(f"{args.batch_name}__{jobname}"),
+                                    thinputpath=thinputpath_value,
+                                    convino_cmd=convino_cmd,
+                                    result_ext=result_ext,
+                                    dofit_script=dofit_folder,
+                                    dofit_extra_args=args.dofit_extra_args,
+                                    blind_salt_basename=blind_salt_basename))
 
 
     st = os.stat(sh_path)
@@ -466,7 +616,9 @@ def main():
 
     abs_tar = os.path.abspath(tarball_name)
     abs_sh = os.path.abspath(sh_path)
-    transfer_inputs = abs_tar
+    transfer_inputs = abs_tar + ',' + conda_pack_tarball
+    if ship_blind_salt:
+        transfer_inputs += ',' + blind_salt_file
     with open(htc_path, 'w') as htf:
         htf.write(HTC_TEMPLATE.format(script_name=abs_sh,
                                 transfer_input_files=transfer_inputs,

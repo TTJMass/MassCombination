@@ -32,6 +32,17 @@ corrSetupsWithScan=(
 "Combination_ATLAS813CMS13_corrV2"
 )
 
+corrSetupsNoScanTMP=(
+# "Combination_ATLAS813CMS13_corrV2_noLineshape"
+"Combination_ATLAS813CMS13_corrV2_noRecoil"
+)
+
+toTestAtlas=(
+"Combination_ATLAS813CMS13_corrExtreme"
+"Combination_ATLAS813CMS13_corrMore"
+"Combination_ATLAS813CMS13_corrDeltaPhi"
+)
+
 # create a jobsdir with datestamp
 jobsdir="condorJobs_$(date +%Y%m%d)"
 
@@ -62,23 +73,35 @@ fi
 # done
 
 
-# and now call the condor jobs for impacts
-for setup in "${setups[@]}"; do
-    echo "Creating condor jobs for standalone setup: ${setup}"
-    python3 condorManagement/createCondorJobs.py Convino/ConvinoSetups/${setup} ${eosOutPath} ${batchname} ${jobsdir}/${setup}  --only-nominal --do-impacts
-done
+# # and now call the condor jobs for impacts
+# for setup in "${setups[@]}"; do
+#     echo "Creating condor jobs for standalone setup: ${setup}"
+#     python3 condorManagement/createCondorJobs.py Convino/ConvinoSetups/${setup} ${eosOutPath} ${batchname} ${jobsdir}/${setup}  --only-nominal --do-impacts
+# done
 
-for setup in "${noCorrSetups[@]}"; do
-    echo "Creating condor jobs for noCorr setup: ${setup}"
-    python3 condorManagement/createCondorJobs.py Convino/ConvinoSetups/${setup} ${eosOutPath} ${batchname} ${jobsdir}/${setup} --only-nominal --do-impacts
-done
+# for setup in "${noCorrSetups[@]}"; do
+#     echo "Creating condor jobs for noCorr setup: ${setup}"
+#     python3 condorManagement/createCondorJobs.py Convino/ConvinoSetups/${setup} ${eosOutPath} ${batchname} ${jobsdir}/${setup} --only-nominal --do-impacts
+# done
 
-for setup in "${corrSetupsNoScan[@]}"; do
+# for setup in "${corrSetupsNoScan[@]}"; do
+#     echo "Creating condor jobs for corr setup without scan: ${setup}"
+#     python3 condorManagement/createCondorJobs.py Convino/ConvinoSetups/${setup} ${eosOutPath} ${batchname} ${jobsdir}/${setup} --only-nominal --do-impacts
+# done
+
+# for setup in "${corrSetupsWithScan[@]}"; do
+#     echo "Creating condor jobs for corr setup with scan: ${setup}"
+#     python3 condorManagement/createCondorJobs.py Convino/ConvinoSetups/${setup} ${eosOutPath} ${batchname} ${jobsdir}/${setup} --only-nominal --do-impacts
+# done
+
+
+# and the tests for TMP
+# for setup in "${corrSetupsNoScanTMP[@]}"; do
+#     echo "Creating condor jobs for corr setup without scan (TMP): ${setup}"
+#     python3 condorManagement/createCondorJobs.py Convino/ConvinoSetups/${setup} ${eosOutPath} ${batchname} ${jobsdir}/${setup} --only-nominal
+# done
+
+for setup in "${toTestAtlas[@]}"; do
     echo "Creating condor jobs for corr setup without scan: ${setup}"
-    python3 condorManagement/createCondorJobs.py Convino/ConvinoSetups/${setup} ${eosOutPath} ${batchname} ${jobsdir}/${setup} --only-nominal --do-impacts
-done
-
-for setup in "${corrSetupsWithScan[@]}"; do
-    echo "Creating condor jobs for corr setup with scan: ${setup}"
-    python3 condorManagement/createCondorJobs.py Convino/ConvinoSetups/${setup} ${eosOutPath} ${batchname} ${jobsdir}/${setup} --only-nominal --do-impacts
+    python3 condorManagement/createCondorJobs.py Convino/ConvinoSetups/${setup} ${eosOutPath} ${batchname} ${jobsdir}/${setup} --only-nominal
 done
