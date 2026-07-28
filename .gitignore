@@ -30,3 +30,11 @@ testJobs*
 jobs_dir*
 pyconvinoscan*
 input_plots*
+
+# Claude-session working notes/scratch, kept locally only
+FITMATRIX_STATUS.md
+GLOBAL_IMPACTS_PLAN.md
+global_impacts_dev/
+
+# local archives of decommissioned old-stack content
+archive/

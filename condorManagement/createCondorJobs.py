@@ -315,8 +315,8 @@ def main():
     parser.add_argument('--force-tarball', action='store_true', help='Force recreation of the tarball even if metadata matches')
     parser.add_argument('--only-nominal', action='store_true', help='Only create the single nominal job and skip creating the scan jobs')
     parser.add_argument('--do-impacts', action='store_true', help='Run also impacts')
-    parser.add_argument('--mode', choices=['old', 'new'], default='old',
-                        help='Which stack to use: old (Convino C++ binary + mtpole-ttj) or new (pyconvino + mtpole-ttj-pyconvino)')
+    parser.add_argument('--mode', choices=['old', 'new'], default='new',
+                        help='Which stack to use: old (Convino C++ binary + mtpole-ttj, decommissioned 2026-07-28 -- see archive/) or new (pyconvino + mtpole-ttj-pyconvino)')
     parser.add_argument('--convino-extra-args', default='',
                         help='Extra arguments appended verbatim to the convino/pyconvino CLI invocation in the generated shell script.')
     parser.add_argument('--dofit-extra-args', default='',
