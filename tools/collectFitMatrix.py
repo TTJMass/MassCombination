@@ -5,12 +5,13 @@ Kept separate from collectCondorScans.py (scan-specific, different schema/key
 structure) to avoid the same result-collision bug class that script already
 hit once with its scan keys.
 
-Primary key per fit: (exp, theory_source, order, PDF, poi_config) -- the
-shared axis vocabulary written by fit_object.py's _write_results_json (see
-mtpole-ttj-pyconvino/fit_object.py). Two results.json files mapping to the
-same key is a hard error by default: silently keeping one (e.g. "last one
-found by os.walk") would make the aggregated dataset depend on filesystem
-walk order, an easy way to quietly lose or overwrite a real fit result.
+Primary key per fit: (exp, theory_source, order, PDF, poi_config, poly_order)
+-- the shared axis vocabulary written by fit_object.py's _write_results_json
+(see mtpole-ttj-pyconvino/fit_object.py). Two results.json files mapping to
+the same key is a hard error by default: silently keeping one (e.g. "last
+one found by os.walk") would make the aggregated dataset depend on
+filesystem walk order, an easy way to quietly lose or overwrite a real fit
+result.
 
 Blinded fits (is_blinded=True) all carry blind_salt_fingerprint -- the
 truncated sha256 of the salt file used, never the salt value itself (see
@@ -29,7 +30,7 @@ from datetime import datetime, timezone
 
 import pandas as pd
 
-KEY_FIELDS = ('exp', 'theory_source', 'order', 'PDF', 'poi_config')
+KEY_FIELDS = ('exp', 'theory_source', 'order', 'PDF', 'poi_config', 'poly_order')
 
 
 def find_results_json(roots):

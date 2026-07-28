@@ -20,3 +20,13 @@ build/
 # Condor job generation output / cached packed conda env (large binaries)
 condorJobs_*/
 envCache/
+
+
+
+# random output files and folders
+NEWTestOutputs*
+fitmatrix_results*
+testJobs*
+jobs_dir*
+pyconvinoscan*
+input_plots*

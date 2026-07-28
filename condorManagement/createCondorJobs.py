@@ -273,7 +273,7 @@ if [ -z "$RESULT" ]; then
 else
     echo "Found result: $RESULT"
     echo "Running doFit.py on $RESULT"
-    if python3 {dofit_script}/doFit.py --exp "{exp}" --expPath "$RESULT" --thinputpath "{thinputpath}" {dofit_extra_args} &> fit.log; then
+    if python3 {dofit_script}/doFit.py --exp "{exp}" --expPath "$RESULT" --thinputpath "{thinputpath}" {stripperpath_flag} {dofit_extra_args} &> fit.log; then
         FIT_OK=1
         echo "doFit.py succeeded"
     else
@@ -336,6 +336,16 @@ def main():
     parser.add_argument('--no-ship-nlo-json', action='store_true',
                         help='Force the legacy live-AFS ROOT theory path (inputs/theory_path.txt) even if '
                              '--nlo-theory-json exists. For debugging/fallback only.')
+    parser.add_argument('--stripper-theory-json',
+                        default=os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'theory-data', 'newdata.json')),
+                        help='Path to the converted NNLO/--stripper theory JSON (theory-data/newdata.json). When '
+                             'present and --mode new, it is shipped inside the setup tarball and passed as '
+                             '--stripperPath, so --stripper fits never read this 115MB file live off AFS '
+                             '(doFit.py otherwise defaults --stripperPath to a hardcoded AFS path). Ignored for '
+                             '--mode old.')
+    parser.add_argument('--no-ship-stripper-json', action='store_true',
+                        help='Force the live-AFS --stripperPath default even if --stripper-theory-json exists. '
+                             'For debugging/fallback only.')
     parser.add_argument('--blind-salt-file',
                         default=os.path.expanduser('~/.masscomb_blind_salt'),
                         help='Path to the persistent blinding salt file (mtpole-ttj-pyconvino/blinding.py, '
@@ -413,23 +423,39 @@ def main():
     if os.path.isdir(mtp):
         tar_components.append(mtp)
 
-    # Ship the pre-converted NLO theory JSON inside the tarball instead of
-    # reading theory-data/powheg_generations live off AFS from inside the fit
-    # (the dominant AFS load source under heavy concurrent scan-job load, see
-    # PLAN_afs_load_fix.md). Only the new (pyconvino) stack's th_xsec.py knows
-    # how to read this JSON.
-    nlo_theory_json = os.path.abspath(args.nlo_theory_json)
-    ship_nlo_json = (args.mode == 'new' and not args.no_ship_nlo_json
-                      and os.path.isfile(nlo_theory_json))
-    if args.mode == 'new' and not ship_nlo_json and not args.no_ship_nlo_json:
-        print(f"WARNING: --nlo-theory-json not found at {nlo_theory_json}; "
-              "falling back to live-AFS ROOT theory path (inputs/theory_path.txt). "
-              "Run mtpole-ttj-pyconvino/convertNLOTheoryData.py once to avoid AFS load under heavy batch load.")
-    if ship_nlo_json:
-        tar_components.append(nlo_theory_json)
-        thinputpath_value = os.path.basename(nlo_theory_json)
-    else:
-        thinputpath_value = os.path.join(dofit_folder, 'inputs', 'theory_path.txt')
+    # Ship a theory JSON inside the tarball instead of reading it live off AFS
+    # from inside the fit (the dominant AFS load source under heavy
+    # concurrent scan-job load, see PLAN_afs_load_fix.md). Only the new
+    # (pyconvino) stack knows how to read either JSON. Shared by the NLO
+    # (theory-data/powheg_generations) and NNLO/--stripper (newdata.json,
+    # 115MB -- well within what transfer_input_files already proves out at
+    # 268MB for the conda-pack env) theory sources below.
+    def _ship_or_fallback(json_path, no_ship_flag, fallback_value, flag_name, extra_warning):
+        json_path = os.path.abspath(json_path)
+        ship = (args.mode == 'new' and not no_ship_flag and os.path.isfile(json_path))
+        if args.mode == 'new' and not ship and not no_ship_flag:
+            print(f"WARNING: {flag_name} not found at {json_path}; {extra_warning}")
+        if ship:
+            tar_components.append(json_path)
+            return os.path.basename(json_path)
+        return fallback_value
+
+    thinputpath_value = _ship_or_fallback(
+        args.nlo_theory_json, args.no_ship_nlo_json,
+        fallback_value=os.path.join(dofit_folder, 'inputs', 'theory_path.txt'),
+        flag_name='--nlo-theory-json',
+        extra_warning='falling back to live-AFS ROOT theory path (inputs/theory_path.txt). '
+                       'Run mtpole-ttj-pyconvino/convertNLOTheoryData.py once to avoid AFS load under heavy batch load.')
+
+    stripperpath_value = _ship_or_fallback(
+        args.stripper_theory_json, args.no_ship_stripper_json,
+        fallback_value=os.path.abspath(args.stripper_theory_json),
+        flag_name='--stripper-theory-json',
+        extra_warning="--stripper jobs will fall back to doFit.py's hardcoded live-AFS default.")
+    # --stripperPath only exists on the new (pyconvino) doFit.py -- the old
+    # (mtpole-ttj) doFit.py has no such argument and argparse hard-errors on
+    # any unrecognized flag, so this must be omitted entirely for --mode old.
+    stripperpath_flag = f'--stripperPath "{stripperpath_value}"' if args.mode == 'new' else ''
 
     blind_salt_file = os.path.abspath(os.path.expanduser(args.blind_salt_file))
     ship_blind_salt = (args.mode == 'new' and os.path.isfile(blind_salt_file))
@@ -523,6 +549,7 @@ def main():
                                                  prefix=prefix,
                                                  exp=sanitize(f"{args.batch_name}__{jobname}"),
                                                  thinputpath=thinputpath_value,
+                                                 stripperpath_flag=stripperpath_flag,
                                                  convino_cmd=convino_cmd,
                                                  result_ext=result_ext,
                                                  dofit_script=dofit_folder,
@@ -604,6 +631,7 @@ def main():
                                     prefix=prefix,
                                     exp=sanitize(f"{args.batch_name}__{jobname}"),
                                     thinputpath=thinputpath_value,
+                                    stripperpath_flag=stripperpath_flag,
                                     convino_cmd=convino_cmd,
                                     result_ext=result_ext,
                                     dofit_script=dofit_folder,

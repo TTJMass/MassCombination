@@ -14,3 +14,11 @@
 	path = MtopSummaryPlot
 	url = https://github.com/TTJMass/MtopSummaryPlot.git
 	update = merge # <-- this is what you need to add
+[submodule "mtpole-ttj-pyconvino"]
+	path = mtpole-ttj-pyconvino
+	url = git@github.com:TTJMass/mtpole-ttj.git
+	update = merge
+[submodule "pyconvino"]
+	path = pyconvino
+	url = git@github.com:SWuchterl/pyconvino.git
+	update = merge

@@ -351,6 +351,7 @@ def collect_results(jobs_folder: str, eos_output: Optional[str], verbose: bool =
         f = os.path.join(os.path.dirname(convino_path), 'fit.log')
         parsed = None
         noninvert = False
+        txt = None
 
         # Prefer the structured results.json written by doFit.py's
         # _write_results_json (ships under output/<subdir>/ once the
@@ -389,6 +390,20 @@ def collect_results(jobs_folder: str, eos_output: Optional[str], verbose: bool =
                 print('DEBUG: no fit result and not non-invertible for', convino_path)
             continue
 
+        # PD regularisation applied? combiner.py's _nearest_positive_definite
+        # always emits this UserWarning (on stderr, captured into convino_run.log
+        # by the job wrapper's `&> log` redirect) whenever the prior correlation
+        # matrix needed repair -- unlike noninvert above, this can fire on an
+        # otherwise-successful fit, so it's checked unconditionally rather than
+        # only in the "no fit.log" branch. Reuses `txt` if that branch already
+        # read this file.
+        if txt is None:
+            try:
+                txt = open(convino_path, 'r', errors='ignore').read()
+            except Exception:
+                txt = ''
+        regularized = 'Prior correlation matrix is not positive-definite' in txt
+
         key_path_for_scan = f if os.path.isfile(f) else convino_path
         scanname, value = infer_scan_and_value_from_path(key_path_for_scan, jobs_folder, eos_output)
 
@@ -410,10 +425,11 @@ def collect_results(jobs_folder: str, eos_output: Optional[str], verbose: bool =
             'total_unc': (parsed['total_unc'] if parsed is not None else None),
             'path': (parsed['path'] if parsed is not None else os.path.abspath(convino_path)),
             'nonInvertible': noninvert,
+            'regularized': regularized,
             'convino_log': convino_path,
         }
         if verbose or debug:
-            print(f"Parsed/Found: convino={convino_path}, fit={f if os.path.isfile(f) else 'N/A'}\n  -> scan={scanname}, value={value}, central={entry['central']}, total_unc={entry['total_unc']}, nonInvertible={noninvert}")
+            print(f"Parsed/Found: convino={convino_path}, fit={f if os.path.isfile(f) else 'N/A'}\n  -> scan={scanname}, value={value}, central={entry['central']}, total_unc={entry['total_unc']}, nonInvertible={noninvert}, regularized={regularized}")
 
         key_path = f if os.path.isfile(f) else convino_path
         if (os.path.sep + 'nominal' + os.path.sep) in key_path or os.path.basename(os.path.dirname(key_path)).lower().startswith('nominal'):
@@ -479,8 +495,13 @@ def plot_scan(scanname: str, scan: dict, outdir: str, unblind: bool = False) -> 
             if e.get('value') not in [0.0, 0.25, 0.5, 0.75, -0.25, -0.5, -0.75]:
                 same_as_nom[i] = False
 
-    # color array: red for exactly-nominal entries, default blue otherwise
-    colors = np.where(same_as_nom, 'red', 'C0')
+    # entries where the prior correlation matrix needed PD regularisation
+    # (see collect_results) get flagged gray instead of the default blue, so
+    # a regularised point's shift/uncertainty stays visually distinct
+    reg_flags = np.array([bool(e.get('regularized')) for e in entries_sorted], dtype=bool)
+
+    # color array: red for exactly-nominal entries, gray for regularized, default blue otherwise
+    colors = np.where(same_as_nom, 'red', np.where(reg_flags, 'gray', 'C0'))
 
     delta_c = centrals - nom_c
     # relative deviation wrt nominal central value (fractional)
@@ -924,6 +945,7 @@ def plot_2d(scans: Dict[str, dict], outdir: str):
     Zu = np.full((len(all_vals), len(names)), np.nan)
     NonInv = np.zeros((len(all_vals), len(names)), dtype=bool)
     Same = np.zeros((len(all_vals), len(names)), dtype=bool)
+    Regularized = np.zeros((len(all_vals), len(names)), dtype=bool)
 
     for j, name in enumerate(names):
         s = scans[name]
@@ -948,6 +970,8 @@ def plot_2d(scans: Dict[str, dict], outdir: str):
             Zu[i, j] = e['total_unc'] - nom_u
             if e.get('nonInvertible'):
                 NonInv[i, j] = True
+            if e.get('regularized'):
+                Regularized[i, j] = True
             # mark if this entry's central equals the nominal central exactly
             try:
                 if (e.get('central') is not None) and (nom_c is not None) and (e.get('central') == nom_c):
@@ -976,7 +1000,7 @@ def plot_2d(scans: Dict[str, dict], outdir: str):
     os.makedirs(outdir, exist_ok=True)
 
     # plot central differences
-    fig, ax = plt.subplots(1, 1, figsize=(max(6, len(namesNew) * 0.4), max(4, len(all_vals) * 0.4)))
+    fig, ax = plt.subplots(1, 1, figsize=(max(6, len(namesNew) * 0.4), max(4, len(all_vals) * 0.4)), layout="constrained")
     # center the z axis around 0
     im = ax.imshow(Zc, aspect='auto', origin='lower', interpolation='none', vmin=-np.nanmax(np.abs(Zc)), vmax=np.nanmax(np.abs(Zc)))
     ax.set_xticks(range(len(namesNew)))
@@ -998,7 +1022,15 @@ def plot_2d(scans: Dict[str, dict], outdir: str):
             if not flag:
                 continue
             # rectangle centered at (j, i) with size 1x1 in image coordinates
-            rect = Rectangle((j - 0.5, i - 0.5), 1.0, 1.0, facecolor='gray', edgecolor='gray', linestyle='-', linewidth=1, fill = True, hatch='//', alpha=0.4)
+            rect = Rectangle((j - 0.5, i - 0.5), 1.0, 1.0, facecolor='gray', edgecolor='white', linestyle='-', linewidth=1, fill = True, hatch='//', alpha=0.4)
+            ax.add_patch(rect)
+        # light gray hatch (no fill, so the underlying color stays visible) for
+        # entries where the prior correlation matrix needed PD regularisation --
+        # unlike NonInv these still have a valid Zc/Zu value
+        for (i, j), flag in np.ndenumerate(Regularized):
+            if not flag:
+                continue
+            rect = Rectangle((j - 0.5, i - 0.5), 1.0, 1.0, facecolor='none', edgecolor='white', linestyle='-', linewidth=0, hatch='///', alpha=0.5)
             ax.add_patch(rect)
         # overlay red outline for entries exactly equal to nominal
         for (i, j), flag in np.ndenumerate(Same):
@@ -1024,7 +1056,7 @@ def plot_2d(scans: Dict[str, dict], outdir: str):
     plt.close(fig)
 
     # and the second plot
-    fig, ax = plt.subplots(1, 1, figsize=(max(6, len(namesNew) * 0.4), max(4, len(all_vals) * 0.4)))
+    fig, ax = plt.subplots(1, 1, figsize=(max(6, len(namesNew) * 0.4), max(4, len(all_vals) * 0.4)), layout="constrained")
     # center the z axis around 0
     im = ax.imshow(Zu, aspect='auto', origin='lower', interpolation='none', vmin=-np.nanmax(np.abs(Zu)), vmax=np.nanmax(np.abs(Zu)))
     ax.set_xticks(range(len(namesNew)))
@@ -1045,7 +1077,15 @@ def plot_2d(scans: Dict[str, dict], outdir: str):
             if not flag:
                 continue
             # rectangle centered at (j, i) with size 1x1 in image coordinates
-            rect = Rectangle((j - 0.5, i - 0.5), 1.0, 1.0, facecolor='gray', edgecolor='gray', linestyle='-', linewidth=1, fill = True, hatch='//', alpha=0.4)
+            rect = Rectangle((j - 0.5, i - 0.5), 1.0, 1.0, facecolor='gray', edgecolor='white', linestyle='-', linewidth=1, fill = True, hatch='//', alpha=0.4)
+            ax.add_patch(rect)
+        # light gray hatch (no fill, so the underlying color stays visible) for
+        # entries where the prior correlation matrix needed PD regularisation --
+        # unlike NonInv these still have a valid Zc/Zu value
+        for (i, j), flag in np.ndenumerate(Regularized):
+            if not flag:
+                continue
+            rect = Rectangle((j - 0.5, i - 0.5), 1.0, 1.0, facecolor='none', edgecolor='white', linestyle='-', linewidth=0, hatch='///', alpha=0.5)
             ax.add_patch(rect)
         # overlay red outline for entries exactly equal to nominal
         for (i, j), flag in np.ndenumerate(Same):
@@ -1216,7 +1256,7 @@ def print_top_uncertainty_deviations(scans: Dict[str, dict], topn: int = 10) -> 
 
 
     # plot uncertainty differences
-    fig, ax = plt.subplots(1, 1, figsize=(max(6, len(names) * 0.6), max(4, len(all_vals) * 0.2)))
+    fig, ax = plt.subplots(1, 1, figsize=(max(6, len(names) * 0.6), max(4, len(all_vals) * 0.2)), layout="constrained")
     im = ax.imshow(Zu, aspect='auto', origin='lower', interpolation='none')
     ax.set_xticks(range(len(names)))
     ax.set_xticklabels(names, rotation=90)

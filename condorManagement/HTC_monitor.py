@@ -281,8 +281,19 @@ def monitor(options, log='', local=False):
                  resub_cmd = (os.path.splitext(resub_file_abspath)[0]+'.sh' if local else BATCH_RESUB_EXE+' '+resub_file_abspath+resub_addopt)
 
                  if local:
-                    if os.path.isfile(os.path.splitext(resub_file_abspath)[0]+'.sh'):
-                       EXE(os.path.splitext(resub_file_abspath)[0]+'.sh', verbose=options.verbose, dry_run=options.dry_run)
+                    sh_file = os.path.splitext(resub_file_abspath)[0]+'.sh'
+                    if os.path.isfile(sh_file):
+                       # run with cwd == the .sh's own directory, mirroring Condor's
+                       # "initialdir" behaviour; the script resolves its input tarballs
+                       # via relative paths from its cwd, so running it from elsewhere
+                       # (e.g. the repo root) breaks those lookups.
+                       sh_dir = os.path.dirname(sh_file)
+                       orig_cwd = os.getcwd()
+                       os.chdir(sh_dir)
+                       try:
+                          EXE('./'+os.path.basename(sh_file), verbose=options.verbose, dry_run=options.dry_run)
+                       finally:
+                          os.chdir(orig_cwd)
                  else:
                     EXE(BATCH_RESUB_EXE+' '+resub_file_abspath+resub_addopt, verbose=options.verbose, dry_run=options.dry_run)
 

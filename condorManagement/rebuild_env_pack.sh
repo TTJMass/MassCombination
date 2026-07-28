@@ -8,7 +8,7 @@
 # -in-time snapshot; createCondorJobs.py does not rebuild it automatically.
 #
 # conda-pack refuses to pack an env with editable-installed packages, and
-# convino_jax (pyconvino) is normally installed editable for interactive dev.
+# pyconvino is normally installed editable for interactive dev.
 # This script temporarily reinstalls it non-editable, packs, then restores
 # the editable install (via a trap, so it runs even if packing fails).
 set -euo pipefail
@@ -30,8 +30,8 @@ export PYTHONNOUSERSITE=1
 mkdir -p "$ENV_CACHE_DIR"
 
 restore_editable() {
-    echo "Restoring editable convino_jax install..."
-    pip uninstall -y convino_jax >/dev/null 2>&1 || true
+    echo "Restoring editable pyconvino install..."
+    pip uninstall -y pyconvino >/dev/null 2>&1 || true
     pip install -e "$PYCONVINO_DIR" --no-deps --no-user
 }
 trap restore_editable EXIT
@@ -39,7 +39,12 @@ trap restore_editable EXIT
 echo "Ensuring conda-pack is installed..."
 python3 -c "import conda_pack" 2>/dev/null || pip install --no-user conda-pack
 
-echo "Temporarily installing convino_jax non-editable (required for conda-pack)..."
+# Package was renamed convino_jax -> pyconvino; drop any stale editable
+# install left under the old name so its AFS-path finder doesn't get
+# packed into the tarball (dangling reference on Condor workers).
+pip uninstall -y convino_jax >/dev/null 2>&1 || true
+
+echo "Temporarily installing pyconvino non-editable (required for conda-pack)..."
 pip install "$PYCONVINO_DIR" --no-deps --no-user --force-reinstall
 
 echo "Packing masscomb env to $PACKED_TARBALL ..."
