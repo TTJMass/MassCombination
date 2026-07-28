@@ -1,0 +1,278 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[a4paper,margin=2.3cm]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{parskip}
+\usepackage{hyperref}
+\usepackage{pifont}
+
+\newcommand{\code}[1]{\texttt{#1}}
+
+\title{Uncertainty breakdown of the combined top-quark mass:\\ three impact definitions}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+\vspace{-2.5em}
+
+\begin{quote}
+\textit{Math note for the two-stage combination (pyconvino cross-section
+combination $\to$ mtpole-ttj-pyconvino $\chi^2$ mass fit). Covers (A) the
+classic freeze/conditional impact, (B) the marginal ``global impact'' of
+arXiv:2307.04007, and (C) the exact additive variance-share generalisation used
+for correlated priors.}
+\end{quote}
+
+All numbers quoted are \textbf{uncertainties only} (the fit is blinded); they come
+from the 3-experiment \code{Combination\_ATLAS813CMS13\_corrV2} fit (ATLAS 8~TeV +
+ATLAS 13~TeV + CMS 13~TeV, NNLO / CT18NNLO, \code{polyOrder 1}).
+
+\section*{0. Setup and notation}
+
+\textbf{Stage 1 --- combination.} \code{pyconvino} combines the input differential
+measurements into a vector of combined cross sections $x\in\mathbb{R}^{n}$ (here
+$n=19$ bins), profiling $N$ experimental nuisance parameters
+$\theta\in\mathbb{R}^{N}$ (here $N=614$). Each nuisance carries a Gaussian prior
+
+\[
+\theta \sim \mathcal{N}\!\big(0,\ C\big),\qquad C^{-1}\equiv \code{inv\_C}\ (\text{prior precision}).
+\]
+
+For the usual ``unit, independent'' priors $C=\mathbb{1}$; the \code{corrV2} setup
+deliberately makes $C$ (hence \code{inv\_C}) \textbf{non-diagonal}, correlating
+common systematics \emph{across experiments}. The combination returns the joint
+post-fit covariance
+
+\[
+\text{cov\_full}=
+\begin{pmatrix}\Sigma_{xx} & \Sigma_{x\theta}\\[2pt] \Sigma_{\theta x} & \Sigma_{\theta\theta}\end{pmatrix},
+\qquad
+\Sigma_{xx}\equiv C_{\rm tot}=\code{combined\_covariance},\quad
+\Sigma_{x\theta}=\code{x\_sys\_cov}.
+\]
+
+\textbf{Stage 2 --- mass fit.} In the Gaussian/linear regime the mass estimator is
+a linear functional of the combined cross sections,
+
+\[
+\boxed{\ \hat m - m_0 = w^\top\,(x-x_0)\ }\qquad
+w=\text{Fisher weights (\code{\_fisher\_weights})}.
+\]
+
+(The code applies a normalisation Jacobian $J$ so that $w_{\rm abs}=J^\top w$ acts
+in absolute-cross-section space; that is an implementation detail and is
+suppressed below.)
+
+\textbf{The one vector that drives everything.} Define the covariance of the mass
+with each nuisance,
+
+\[
+\boxed{\ g_i \equiv \mathrm{Cov}(\hat m,\theta_i) = \big(w^\top \Sigma_{x\theta}\big)_i\ }
+\qquad (\text{code: } \code{dm\_i} = w_{\rm abs}\!\cdot\!\code{x\_sys\_cov}[:,i]).
+\]
+
+Also write $\sigma_{{\rm post},i}=\sqrt{\Sigma_{\theta\theta,ii}}$ (post-fit width
+of $\theta_i$) and $\sigma_{{\rm pre},i}=\sqrt{C_{ii}}$ (prior width). The total
+experimental mass variance is $\sigma_m^2 = w^\top C_{\rm tot}\,w$.
+
+Everything below is a different way of attributing $\sigma_m^2$ (or its
+systematic part) to the individual $\theta_i$.
+
+\section*{A. Classic impact --- freeze / conditional method}
+
+\textbf{Recipe.} Fix one nuisance to its best fit $\pm$ its \textbf{post-fit}
+uncertainty, $\theta_i=\hat\theta_i\pm\sigma_{{\rm post},i}$, re-minimise, read the
+shift in $\hat m$.
+
+\textbf{Closed form.} For a Gaussian joint posterior of $(\hat m,\theta)$ the
+conditional mean gives
+
+\[
+\boxed{\ I^{\rm freeze}_i=\frac{\mathrm{Cov}(\hat m,\theta_i)}{\sigma_{{\rm post},i}}
+=\frac{g_i}{\sigma_{{\rm post},i}}=\sigma_m\,\rho(\hat m,\theta_i)\ }
+\]
+
+i.e.\ the familiar ``impact $=\sigma_m\times$ correlation''.
+
+\textbf{Stat/syst split (Tier-1).} The systematic is defined by \emph{freezing
+all} nuisances:
+
+\[
+\sigma_{\rm stat}^{\rm freeze}=\big(\text{mass unc.\ with all }\theta\text{ fixed}\big),\qquad
+\big(\sigma_{\rm syst}^{\rm freeze}\big)^2=\sigma_m^2-\big(\sigma_{\rm stat}^{\rm freeze}\big)^2
+= w^\top V_{\rm syst}\,w,
+\]
+
+with $V_{\rm syst}=C_{\rm tot}-V_{\rm stat}$ (code:
+\texttt{total\_\allowbreak syst\_\allowbreak covariance}).
+Equivalently $f=\big(w^\top V_{\rm syst} w\big)/\big(w^\top C_{\rm tot} w\big)$ and
+$\sigma_{\rm syst}=\sigma_m\sqrt{f}$, $\sigma_{\rm stat}=\sigma_m\sqrt{1-f}$.
+
+\textbf{Key property / caveat.} The freeze \emph{stat/syst split closes}
+($\sigma_{\rm stat}\oplus\sigma_{\rm syst}=\sigma_m$), \textbf{but the
+per-nuisance $I^{\rm freeze}_i$ do NOT add up} to $\sigma_{\rm syst}^{\rm freeze}$
+--- the classic ``impacts don't sum'' fact, because the $\theta_i$ are correlated
+in the post-fit and each $I^{\rm freeze}_i$ double-counts shared constraint.
+
+\textit{Live numbers:} $\sigma_{\rm stat}^{\rm freeze}=424.7$~MeV,
+$\sigma_{\rm syst}^{\rm freeze}=733.1$~MeV ($\oplus=847.2$~MeV experimental total).
+
+\section*{B. Global impact --- marginal (arXiv:2307.04007)}
+
+\textbf{Recipe.} Shift the \emph{external/auxiliary observable} $y_i$ that
+constrains $\theta_i$ by its \textbf{prefit} width $\sigma_{{\rm pre},i}$, let all
+$\theta$ \textbf{float}, refit, read $\Delta\hat m$.
+
+\textbf{Relation to the freeze impact.} The two differ by the \emph{post-fit
+nuisance-parameter covariance} factor $\sigma_{{\rm post},i}/\sigma_{{\rm pre},i}$:
+
+\[
+\boxed{\ I^{\rm glob}_i = I^{\rm freeze}_i\times\frac{\sigma_{{\rm post},i}}{\sigma_{{\rm pre},i}}
+=\frac{g_i}{\sigma_{{\rm pre},i}}\ }\ \xrightarrow{\ \text{unit priors }\sigma_{\rm pre}=1\ }\
+I^{\rm glob}_i = g_i = \mathrm{Cov}(\hat m,\theta_i).
+\]
+
+This $I^{\rm glob}_i=g_i$ is exactly the code's marginal \code{dm\_i} and the
+marginal forest bars.
+
+\textbf{Additive property (the reason the method exists).} \emph{When the
+auxiliary observables are independent} ($C$, hence \code{inv\_C}, diagonal),
+
+\[
+\big(\sigma_{\rm syst}^{\rm glob}\big)^2=\sum_i \big(I^{\rm glob}_i\big)^2=\sum_i g_i^2 .
+\]
+
+\textbf{Stat/syst interpretation (paper slide 8).} The global split books the
+\emph{in-situ statistical constraint of the nuisances} as \textbf{statistical}, so
+$\sigma_{\rm syst}^{\rm glob}=$ fluctuations of the external measurements only,
+and $\sigma_{\rm stat}^{\rm glob}=\sqrt{\sigma_m^2-(\sigma_{\rm syst}^{\rm glob})^2}$
+absorbs that in-situ constraint. Same total, different stat/syst line than the
+freeze method --- neither is ``more correct''.
+
+\textbf{Caveat under correlated priors.} With \code{inv\_C} non-diagonal (our
+\code{corrV2} case) the plain quadrature $\sum_i g_i^2$ is \textbf{not}
+$\sigma_{\rm syst}^2$ --- see \S~C.
+
+\textit{Live numbers:} $\sqrt{\sum_i g_i^2}=954.7$~MeV, which even
+\textbf{exceeds} the experimental total (852.1~MeV) --- a clear symptom that
+quadrature-summing the marginals is wrong here.
+
+\section*{C. Global impact --- exact additive variance share (correlated priors)}
+
+\textbf{The correct systematic variance.} Propagate fluctuations of the auxiliary
+data $y$ (covariance = prior covariance $C=\code{inv\_C}^{-1}$) through the
+profiled fit. Using $\partial \hat x/\partial y=\Sigma_{x\theta}\,\code{inv\_C}$,
+
+\[
+\frac{\partial\hat m}{\partial y}=w^\top\Sigma_{x\theta}\,\code{inv\_C}=g^\top\code{inv\_C},
+\]
+
+\[
+\boxed{\ \sigma_{\rm syst}^2=\frac{\partial\hat m}{\partial y}\,C\,\frac{\partial\hat m}{\partial y}^{\!\top}
+=\big(g^\top\code{inv\_C}\big)\,\code{inv\_C}^{-1}\,\big(\code{inv\_C}\,g\big)
+= g^\top\,\code{inv\_C}\,g\ }
+\]
+
+This is positive ($\code{inv\_C}\succ0$) and provably $\le\sigma_m^2$; it reduces
+to $\sum_i g_i^2$ only when $\code{inv\_C}=\mathbb{1}$.
+
+\textbf{Exact additive attribution.} Define $a\equiv\code{inv\_C}\,g$. Then
+
+\[
+\sigma_{\rm syst}^2=g^\top a=\sum_i \underbrace{g_i\,a_i}_{\textstyle s_i},\qquad
+s_g=\sum_{i\in g} g_i\,a_i,\qquad
+\boxed{\ \sum_i s_i=\sum_g s_g=\sigma_{\rm syst}^2\ (\text{exactly})\ }
+\]
+
+Plot the signed root $\operatorname{sign}(s)\sqrt{|s|}$ so the (signed) squares
+still add to $\sigma_{\rm syst}^2$.
+
+\textbf{Why this is the paper's method, generalised.} With independent priors
+$\code{inv\_C}=\mathbb{1}\Rightarrow a_i=g_i\Rightarrow s_i=g_i^2=\big(I^{\rm glob}_i\big)^2$
+--- the two agree term by term. Restoring the correlation metric \code{inv\_C} is
+the \emph{only} change; it turns the oblique (correlated) axes into the right
+inner product.
+
+\textbf{Geometric picture --- why the marginals (\S~B) don't sum but these do.}
+$\sigma_{\rm syst}$ is the \emph{length} of $g$ in the \code{inv\_C} metric.
+Cholesky $\code{inv\_C}=LL^\top$ and $h=L^\top g$ give an \textbf{orthogonal}
+(whitened) basis where Pythagoras holds exactly,
+$\sum_k h_k^2=g^\top\code{inv\_C}\,g$ (verified to $10^{-13}$). The named
+nuisances are the \emph{oblique} axes; summing the squares of their projections
+$g_i^2$ ignores the cross terms $\sum_{i\ne j} g_i(\code{inv\_C})_{ij}g_j$. The
+variance share $s_i=g_i a_i$ folds each row's full cross term back in, restoring
+closure.
+
+\textbf{Why a share can be negative.}
+$s_i<0\iff\operatorname{sign}(g_i)\ne\operatorname{sign}(a_i)$: the source's own
+mass pull $g_i$ opposes the correlation-weighted pull
+$a_i=(\code{inv\_C}\,g)_i$, i.e.\ it is \emph{anti-correlated through the prior}
+with the dominant systematics, so including it slightly \textbf{reduces} the
+total variance --- the exact analogue of a negative covariance term in an
+ordinary correlated error budget.
+
+\textit{Live numbers:} $\sqrt{g^\top\code{inv\_C}\,g}=830.3$~MeV (linear)
+$\le 852.1$ total; per-group shares close to $\sigma_{\rm syst}=825.5$~MeV
+(HESSE-anchored) with \textbf{1 of 49} groups negative
+(\code{ATLAS\_13TeV\_modelling\_singletop}, $-1.9$~MeV: $g=-1.7$, $a=+2.2$);
+per-nuisance shares close to the same, 23 of 614 negative.
+
+\section*{D. Side-by-side}
+
+\begingroup
+\renewcommand{\arraystretch}{1.5}
+\small
+\begin{tabular}{@{}p{2.4cm}p{3.7cm}p{3.7cm}p{5.3cm}@{}}
+\toprule
+ & \textbf{A. Freeze / classic} & \textbf{B. Global --- marginal} & \textbf{C. Global --- additive share} \\
+\midrule
+Per-source formula & $I^{\rm freeze}_i=g_i/\sigma_{{\rm post},i}$ & $I^{\rm glob}_i=g_i/\sigma_{{\rm pre},i}$ & $s_i=g_i\,(\code{inv\_C}\,g)_i$ \\
+Reads as & ``shift if $\theta_i$ fixed to $\pm\sigma_{\rm post}$'' & ``shift if aux obs moves $\pm\sigma_{\rm pre}$'' & ``contribution of $\theta_i$ to $\sigma_{\rm syst}^2$'' \\
+$\sum$ over sources $=\sigma_{\rm syst}^2$? & \ding{55}~(never) & \ding{51}~only if priors independent & \ding{51}~\textbf{always (exact)} \\
+Sign & $\ge 0$ & $\ge 0$ & signed (can be $<0$) \\
+Books in-situ NP constraint as & systematic & statistical & (attribution of the global $\sigma_{\rm syst}$) \\
+Total exp.\ syst & $733.1$~MeV & (marginals overshoot: $954.7$) & $825.5$~MeV \\
+Code output & \texttt{doExp\allowbreak Stat\allowbreak Syst\allowbreak Breakdown} (Tier-1) & \texttt{global\_\allowbreak impacts\_\allowbreak\{groups,\allowbreak nuisances\}} & \texttt{global\_\allowbreak impacts\_\allowbreak\{groups,\allowbreak nuisances\}\_\allowbreak additive} \\
+\bottomrule
+\end{tabular}
+\endgroup
+
+\bigskip
+\textbf{Relations:}
+$I^{\rm glob}_i = I^{\rm freeze}_i\cdot\sigma_{{\rm post},i}/\sigma_{{\rm pre},i}$;
+and $s_i \xrightarrow{\ \code{inv\_C}\to\mathbb{1}\ } (I^{\rm glob}_i)^2$. Both
+stat/syst splits close to the same experimental total ($847.2$~MeV here); they
+only draw the stat/syst line in different places.
+
+\section*{E. Practical guidance}
+
+\begin{itemize}
+  \item \textbf{Headline stat vs syst:} either split is defensible; quote which
+    convention (freeze vs global) is used. Freeze $=$ traditional; global $=$
+    ``external-only systematic''.
+  \item \textbf{``Which sources dominate?''} --- read the \textbf{marginal} bars
+    (\S~B): honest ``size of each source on its own''. Do \textbf{not}
+    quadrature-sum them under correlated priors.
+  \item \textbf{``Budget that adds up to $\sigma_{\rm syst}$''} --- use the
+    \textbf{additive shares} (\S~C). Expect a few small negative entries
+    (anti-correlated sources); that is correct.
+  \item Everything here is the \emph{experimental} systematic (in the
+    combined-cross-section covariance). Theory (PDF, scale, interpolation) is
+    added separately:
+    $\sigma_{\rm total}^2=\sigma_{\rm exp}^2+\sigma_{\rm PDF}^2+\sigma_{\rm interp}^2+\sigma_{\rm scale}^2$.
+\end{itemize}
+
+\bigskip
+\noindent\textit{Reference:} A.~Freitas et al., \emph{``Uncertainty breakdown via
+global impacts''}, arXiv:2307.04007 (CMS-week slides by A.~Gilbert, slides
+4--9). \S~A $\equiv$ conditional method (slide~3); \S~B $\equiv$ global impact /
+marginal additive form (slides~5--6, independent-aux case); \S~C $\equiv$ its
+exact quadratic-form generalisation for correlated auxiliary observables.
+
+\end{document}

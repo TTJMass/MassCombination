@@ -38,3 +38,11 @@ global_impacts_dev/
 
 # local archives of decommissioned old-stack content
 archive/
+
+# LaTeX build artifacts (*.log already ignored above)
+*.aux
+*.out
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+*.toc
