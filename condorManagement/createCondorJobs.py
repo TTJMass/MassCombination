@@ -129,8 +129,8 @@ when_to_transfer_output = ON_EXIT
 output = {jobdir}/logs/{jobname}.out
 error = {jobdir}/logs/{jobname}.err
 log = {jobdir}/logs/{jobname}.log
-request_cpus = 1
-request_memory = 2000MB
+request_cpus = 4
+request_memory = 12000MB
 +MaxRuntime = 86400
 +AccountingGroup = "group_u_CMST3.all"
 queue
@@ -172,6 +172,23 @@ if [ -f "$EXEC_DIR/$TAR_BASENAME" ]; then
 fi
 
 tar -xzf "$TARBALL"
+
+# Optional second tarball (--shared-package-tarball): mtpole-ttj-pyconvino +
+# theory JSONs, when shipped separately from the (small, setup-specific)
+# $TARBALL above -- see createCondorJobs.py's --shared-package-tarball help.
+# Extracts into the same WORKDIR; SHARED_TAR_BASENAME is empty (this whole
+# block is a no-op) when the flag wasn't used.
+SHARED_TARBALL={shared_tarball_name}
+SHARED_TAR_BASENAME={shared_tarball_basename}
+if [ -n "$SHARED_TAR_BASENAME" ]; then
+    if [[ "$SHARED_TARBALL" != /* ]]; then
+        SHARED_TARBALL="$EXEC_DIR/$SHARED_TARBALL"
+    fi
+    if [ -f "$EXEC_DIR/$SHARED_TAR_BASENAME" ]; then
+        SHARED_TARBALL="$EXEC_DIR/$SHARED_TAR_BASENAME"
+    fi
+    tar -xzf "$SHARED_TARBALL"
+fi
 
 # find the extracted setup dir (we expect the tarball to contain the setup folder named as basename of provided setup)
 EXTRACTED_SETUP_DIR="$(find . -maxdepth 2 -type d -name '{setup_basename}' -print -quit)"
@@ -353,13 +370,56 @@ def main():
                              'transfer and exported as MASSCOMB_BLIND_SALT_PATH so blinded (combination) '
                              'fits can find it on the worker. Only relevant for --mode new; ignored for '
                              '--mode old (blinding is not implemented for the legacy stack).')
+    parser.add_argument('--shared-package-tarball', default=None,
+                        help='Path to a pre-built tarball (see --build-shared-tarball) containing --dofit-path '
+                             '(mtpole-ttj-pyconvino) + the theory JSONs -- the part of the per-setup tarball that '
+                             'is BYTE-IDENTICAL across every ConvinoSetup. Without this flag, that content is '
+                             'bundled into every per-setup tarball as before (backward compatible, just slower '
+                             'across multiple distinct setups: each one re-tars the same ~100+MB payload). With '
+                             'it, the setup tarball shrinks to just the (small, genuinely setup-specific) '
+                             'ConvinoSetup dir, and this shared tarball is shipped/extracted alongside it -- build '
+                             'once with --build-shared-tarball, reuse across every setup and every axis-tuple.')
+    parser.add_argument('--build-shared-tarball', metavar='OUTPUT_PATH', default=None,
+                        help='Build the --shared-package-tarball artifact at OUTPUT_PATH (from --dofit-path + '
+                             '--nlo-theory-json + --stripper-theory-json, same exclude rules as the normal setup '
+                             'tarball) and exit immediately -- does not generate any jobs. Run this once whenever '
+                             'mtpole-ttj-pyconvino source or the theory JSONs change, same lifecycle as '
+                             'rebuild_env_pack.sh for the conda env tarball.')
     args = parser.parse_args()
+
+    if args.build_shared_tarball:
+        mtp = os.path.abspath(args.dofit_path)
+        if args.mode == 'new' and os.path.abspath(mtp) == os.path.abspath(
+                os.path.join(os.path.dirname(__file__), '..', 'mtpole-ttj')):
+            mtp = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'mtpole-ttj-pyconvino'))
+        components = []
+        if os.path.isdir(mtp):
+            components.append(mtp)
+        for json_arg in (args.nlo_theory_json, args.stripper_theory_json):
+            json_path = os.path.abspath(json_arg)
+            if os.path.isfile(json_path):
+                components.append(json_path)
+        exclude_map = {os.path.abspath(mtp): ['plots_fit', 'plots_interp', 'rhoPlotNNLO', 'logs']} if os.path.isdir(mtp) else {}
+        out_path = os.path.abspath(args.build_shared_tarball)
+        os.makedirs(os.path.dirname(out_path) or '.', exist_ok=True)
+        print(f"Building shared package tarball at {out_path} from: {components}")
+        make_tarball(components, out_path, exclude_for_dirs=exclude_map)
+        print(f"Done: {out_path} ({os.path.getsize(out_path) / 1e6:.1f} MB)")
+        return
 
     conda_pack_tarball = os.path.abspath(args.conda_pack_tarball)
     if not os.path.isfile(conda_pack_tarball):
         raise SystemExit(
             f'--conda-pack-tarball not found: {conda_pack_tarball}\n'
             'Build it once with: conda-pack -n masscomb -o ' + conda_pack_tarball)
+
+    if args.shared_package_tarball:
+        args.shared_package_tarball = os.path.abspath(args.shared_package_tarball)
+        if not os.path.isfile(args.shared_package_tarball):
+            raise SystemExit(
+                f'--shared-package-tarball not found: {args.shared_package_tarball}\n'
+                'Build it once with: python3 ' + os.path.abspath(__file__) +
+                ' --build-shared-tarball ' + args.shared_package_tarball)
 
     # Set mode-dependent defaults (only if user didn't explicitly pass them)
     if args.mode == 'new':
@@ -419,8 +479,14 @@ def main():
     convino_exe = os.path.abspath(args.convino_exe)
     if args.mode == 'old' and os.path.exists(convino_exe):
         tar_components.append(convino_exe)
+    # If --shared-package-tarball is given, mtpole-ttj-pyconvino + the theory
+    # JSONs (see below) travel in that separately-shipped, separately-cached
+    # tarball instead -- they are BYTE-IDENTICAL across every ConvinoSetup, so
+    # baking them into this per-setup tarball means every distinct setup
+    # re-tars the same ~100+MB payload for no reason (confirmed: ~10-12min
+    # per distinct setup, dominated by AFS I/O in tarfile's directory walk).
     mtp = os.path.abspath(args.dofit_path)
-    if os.path.isdir(mtp):
+    if os.path.isdir(mtp) and not args.shared_package_tarball:
         tar_components.append(mtp)
 
     # Ship a theory JSON inside the tarball instead of reading it live off AFS
@@ -436,7 +502,11 @@ def main():
         if args.mode == 'new' and not ship and not no_ship_flag:
             print(f"WARNING: {flag_name} not found at {json_path}; {extra_warning}")
         if ship:
-            tar_components.append(json_path)
+            # Already present in --shared-package-tarball -- just report the
+            # basename doFit.py will find after both tarballs are extracted
+            # into the same worker workdir, don't duplicate it here too.
+            if not args.shared_package_tarball:
+                tar_components.append(json_path)
             return os.path.basename(json_path)
         return fallback_value
 
@@ -532,6 +602,8 @@ def main():
                 # compute relative tarball paths from this jobdir so the wrapper can find them
                 rel_tar = os.path.relpath(tarball_name, start=jobdir)
                 rel_env_tar = os.path.relpath(conda_pack_tarball, start=jobdir)
+                rel_shared_tar = os.path.relpath(args.shared_package_tarball, start=jobdir) if args.shared_package_tarball else ''
+                shared_tarball_basename = os.path.basename(args.shared_package_tarball) if args.shared_package_tarball else ''
 
                 with open(sh_path, 'w') as shf:
                     shf.write(SH_TEMPLATE.format(jobname=jobname,
@@ -544,6 +616,8 @@ def main():
                                                 tarball_basename=os.path.basename(tarball_name),
                                                 env_tarball_name=rel_env_tar,
                                                 env_tarball_basename=os.path.basename(conda_pack_tarball),
+                                                shared_tarball_name=rel_shared_tar,
+                                                shared_tarball_basename=shared_tarball_basename,
                                                  setup_basename=os.path.basename(setup_path),
                                                  value=repr(val),
                                                  prefix=prefix,
@@ -565,6 +639,8 @@ def main():
                 abs_tar = os.path.abspath(tarball_name)
                 abs_sh = os.path.abspath(sh_path)
                 transfer_inputs = abs_tar + ',' + conda_pack_tarball
+                if args.shared_package_tarball:
+                    transfer_inputs += ',' + args.shared_package_tarball
                 if ship_blind_salt:
                     transfer_inputs += ',' + blind_salt_file
 
@@ -612,6 +688,8 @@ def main():
 
     rel_tar = os.path.relpath(tarball_name, start=jobdir)
     rel_env_tar = os.path.relpath(conda_pack_tarball, start=jobdir)
+    rel_shared_tar = os.path.relpath(args.shared_package_tarball, start=jobdir) if args.shared_package_tarball else ''
+    shared_tarball_basename = os.path.basename(args.shared_package_tarball) if args.shared_package_tarball else ''
 
     with open(sh_path, 'w') as shf:
         if args.do_impacts:
@@ -626,6 +704,8 @@ def main():
                                     tarball_basename=os.path.basename(tarball_name),
                                     env_tarball_name=rel_env_tar,
                                     env_tarball_basename=os.path.basename(conda_pack_tarball),
+                                    shared_tarball_name=rel_shared_tar,
+                                    shared_tarball_basename=shared_tarball_basename,
                                     setup_basename=os.path.basename(setup_path),
                                     value='NOCHANGE',
                                     prefix=prefix,
@@ -645,6 +725,8 @@ def main():
     abs_tar = os.path.abspath(tarball_name)
     abs_sh = os.path.abspath(sh_path)
     transfer_inputs = abs_tar + ',' + conda_pack_tarball
+    if args.shared_package_tarball:
+        transfer_inputs += ',' + args.shared_package_tarball
     if ship_blind_salt:
         transfer_inputs += ',' + blind_salt_file
     with open(htc_path, 'w') as htf:

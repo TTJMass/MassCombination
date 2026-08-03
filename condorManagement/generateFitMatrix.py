@@ -150,6 +150,14 @@ def main():
                          help='Passed through to createCondorJobs.py')
     parser.add_argument('--blind-salt-file', default=os.path.expanduser('~/.masscomb_blind_salt'),
                          help='Passed through to createCondorJobs.py')
+    parser.add_argument('--shared-package-tarball',
+                         default=os.path.join(REPO_ROOT, 'envCache', 'shared_package.tgz'),
+                         help='Passed through to createCondorJobs.py -- the mtpole-ttj-pyconvino + theory-JSON '
+                              'content that is byte-identical across all 7 ConvinoSetups the matrix touches, so '
+                              'building it once (createCondorJobs.py --build-shared-tarball <path>) and reusing it '
+                              'here avoids re-tarring that ~100+MB payload for each distinct setup (was the '
+                              'dominant cost of a full matrix generation run). If the file does not exist yet, '
+                              'falls back to the old per-setup-tarball behavior with a warning -- never hard-fails.')
     parser.add_argument('--do-impacts', dest='do_impacts', action='store_true', default=True,
                          help='Passed through to createCondorJobs.py (default: on, mirrors '
                               'writeAllCondorJobs_pyconvino.sh commonArgs -- the fit matrix is O(25) '
@@ -166,6 +174,13 @@ def main():
     args = parser.parse_args()
 
     batch_name = args.batch_name or f"MassComb_fitmatrix_{datetime.date.today():%Y%m%d}"
+
+    if not os.path.isfile(args.shared_package_tarball):
+        print(f"NOTE: --shared-package-tarball not found at {args.shared_package_tarball} -- falling back to "
+              f"the old per-setup-tarball behavior (slower: re-tars mtpole-ttj-pyconvino + theory JSONs once per "
+              f"distinct setup). Build it once with: python3 {os.path.join(REPO_ROOT, 'condorManagement', 'createCondorJobs.py')} "
+              f"--build-shared-tarball {args.shared_package_tarball}")
+        args.shared_package_tarball = None
 
     entries = build_matrix()
     if 'all' not in args.categories:
@@ -238,6 +253,7 @@ def main():
             '--conda-pack-tarball', args.conda_pack_tarball,
             '--nlo-theory-json', args.nlo_theory_json,
             '--stripper-theory-json', args.stripper_theory_json,
+        ] + (['--shared-package-tarball', args.shared_package_tarball] if args.shared_package_tarball else []) + [
             '--blind-salt-file', args.blind_salt_file,
             '--dofit-extra-args', dofit_extra_args,
             '--reuse-tarball',

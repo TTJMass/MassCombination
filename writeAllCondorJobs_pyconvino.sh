@@ -49,10 +49,22 @@ fi
 # escape properly for the usage of ""
 commonArgs=(
     --mode new
-    --dofit-extra-args "--interpCheck --nuisanceFit --pulls --budget"
+    --dofit-extra-args "--interpCheck --pulls --globalImpacts --covCompare"
     --do-impacts
     --conda-pack-tarball /afs/cern.ch/work/s/sewuchte/private/MassCombination/envCache/masscomb_packed.tar.gz
 )
+
+# mtpole-ttj-pyconvino + theory JSONs are byte-identical across every setup
+# below, but createCondorJobs.py used to bundle them into each setup's own
+# tarball (~10-12min re-tarred per distinct setup, no caching across the
+# separate createCondorJobs.py calls this script makes). Build once with:
+#   python3 condorManagement/createCondorJobs.py --build-shared-tarball envCache/shared_package.tgz
+# and every setup below picks it up automatically; skipped (falls back to the
+# old slower per-setup behavior) if it hasn't been built yet.
+sharedTarball="/afs/cern.ch/work/s/sewuchte/private/MassCombination/envCache/shared_package.tgz"
+if [ -f "$sharedTarball" ]; then
+    commonArgs+=(--shared-package-tarball "$sharedTarball")
+fi
 
 echo "Creating condor jobs for pyconvino setups..."
 echo commonArgs: "${commonArgs[@]}"

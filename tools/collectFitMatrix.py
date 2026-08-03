@@ -127,14 +127,6 @@ def write_outputs(df, out_prefix):
     df.to_csv(csv_path, index=False)
     print(f'Wrote {csv_path} ({len(df)} rows)')
 
-    parquet_path = out_prefix + '.parquet'
-    try:
-        df.to_parquet(parquet_path, index=False)
-        print(f'Wrote {parquet_path}')
-    except ImportError:
-        print(f'WARNING: no parquet engine available (pip install pyarrow) -- '
-              f'skipped {parquet_path}, {csv_path} still written.', file=sys.stderr)
-
 
 def main():
     parser = argparse.ArgumentParser(
@@ -143,8 +135,7 @@ def main():
     parser.add_argument('--roots', nargs='+', required=True,
                          help='One or more directories to walk for results.json files.')
     parser.add_argument('--out-prefix', default='matrix',
-                         help='Output path prefix; writes <prefix>.parquet, <prefix>.csv, '
-                              '<prefix>_meta.json.')
+                         help='Output path prefix; writes <prefix>.csv, <prefix>_meta.json.')
     parser.add_argument('--allow-duplicates', action='store_true',
                          help='On a primary-key collision, keep the most recently modified '
                               'results.json (with a warning) instead of erroring.')

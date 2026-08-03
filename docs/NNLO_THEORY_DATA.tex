@@ -1,0 +1,108 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[a4paper,margin=2.3cm]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{parskip}
+\usepackage{hyperref}
+
+\newcommand{\code}[1]{\texttt{#1}}
+
+\title{8/13~TeV NNLO theory predictions: content summary}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+\vspace{-2.5em}
+
+\begin{quote}
+\textit{Summary of the theory-prediction grid stored in
+\code{theory-data/output8/}, \code{theory-data/output13/} and consolidated
+into \code{theory-data/analysis/converted\_data.json}. Restricted to the
+$\rho$-related differential observables, inclusive cross sections,
+parameters and PDF variations; non-$\rho$ differential distributions are
+omitted.}
+\end{quote}
+
+\section*{Grid dimensions}
+
+\begin{itemize}
+  \item \textbf{Energies:} 8~TeV and 13~TeV.
+  \item \textbf{Orders in the converted JSON:} \code{LO}, \code{NLO},
+        \code{NNLO\_noVVF} (the full physical NNLO prediction). Raw bare
+        \code{NNLO} $\epsilon$-pole XMLs also exist on disk at both energies
+        but are used only as an internal pole-cancellation check, not shipped
+        in the converted dataset.
+  \item \textbf{Top-quark mass grid:} $167.5,\ 171.5,\ 172.5,\ 173.5,\
+        177.5$~GeV, for every order and energy.
+  \item \textbf{Scale variations:} 3 central scale choices ($H_T$, $H_T/2$,
+        $H_T/4$), each with the standard 7-point $(\mu_R,\mu_F)$ envelope,
+        consolidated onto 13 distinct $(\mu_R,\mu_F)$ points per mass/order.
+        Nominal central scale is $H_T/2$.
+  \item \textbf{Inclusive cross section:} $\epsilon$-expansion coefficients
+        $[c_0, c_{-1}, c_{-2}, c_{-3}, c_{-4}]$ from the STRIPPER
+        dimensional-regularization output; $c_0$ (pb) is the physical cross
+        section, $c_{-1}\ldots c_{-4}$ are IR-pole coefficients kept as a
+        numerical cancellation check.
+\end{itemize}
+
+\section*{$\rho$-related differential distributions}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}llll@{}}
+\toprule
+Label in JSON & Source key & Binning & Description \\
+\midrule
+\code{rhocms8} / \code{rhocms13} & \code{rhocms} & 1 binning, 4 bins & $\rho$ with CMS-style selection, energy-tagged \\
+\code{rhoatlas8} & \code{rhoatl} (binning 1) & 8 bins & $\rho$ with ATLAS-8~TeV-analysis binning \\
+\code{rhoatlas13} & \code{rhoatl} (binning 2) & 7 bins & $\rho$ with ATLAS-13~TeV-analysis binning \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\noindent \code{rhoatlas8} and \code{rhoatlas13} are stored at \emph{both}
+theory energies (the ``8''/``13'' denotes the ATLAS binning scheme, not the
+collision energy); \code{rhocms} is energy-tagged instead. $\rho$ is the
+top-mass-sensitive jet observable of Alioli, Fernandez, Fuster, Irles, Moch,
+Uwer, Vos, \emph{A new observable to measure the top-quark mass at hadron
+colliders}, Eur.\ Phys.\ J.\ C 73 (2013) 2438, arXiv:1303.6415.
+
+\section*{PDF sets}
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{@{}llp{2.7cm}p{4.3cm}p{4.5cm}@{}}
+\toprule
+Family (JSON key) & LHAPDF ID & Members stored & Role & Reference \\
+\midrule
+\code{PDF4LHC21\_40} & 93100 & 41 (0--40: central + 40 eigenvectors) & PDF eigenvector set, all scale points & PDF4LHC Working Group, J.\ Phys.\ G 49 (2022) 080501, arXiv:2203.05506 \\
+\code{CT18NNLO} & 14000 & 59 (0--58: central + 29 eigenvector pairs) & PDF eigenvector set & Hou et al.\ (CTEQ-TEA), Phys.\ Rev.\ D 103, 014013 (2021), arXiv:1912.10053 \\
+\code{CT18NNLO\_as\_0117} & 14067 & 1 & $\alpha_s$ down-variation of CT18NNLO & same \\
+\code{CT18NNLO\_as\_0119} & 14069 & 1 & $\alpha_s$ up-variation of CT18NNLO & same \\
+\code{MSHT20nnlo\_as118} & 27400 & 65 (0--64: central + 32 eigenvector pairs) & PDF eigenvector set & Bailey, Cridge, Harland-Lang, Martin, Thorne, Eur.\ Phys.\ J.\ C 81 (2021) 341, arXiv:2012.04684 \\
+\code{MSHT20nnlo\_as\_smallrange} & 27500 & members 3, 4 only & $\alpha_s$ variation members (fine grid around 0.118) & same \\
+\code{NNPDF31\_nnlo\_as\_0118\_hessian} & 304400 & 101 (0--100: central + 100 Hessian eigenvectors) & PDF eigenvector set & NNPDF Coll.\ (Ball et al.), Eur.\ Phys.\ J.\ C 77 (2017) 663, arXiv:1706.00428 \\
+\code{NNPDF31\_nnlo\_as\_0117} & 323100 & 1 & $\alpha_s$ down-variation & same \\
+\code{NNPDF31\_nnlo\_as\_0119} & 323500 & 1 & $\alpha_s$ up-variation & same \\
+\code{ABMP16als118\_5\_nnlo} & 42780 & 30 (0--29: central + 29 eigenvectors) & PDF eigenvector set (nf=5) & Alekhin, Bl\"umlein, Moch, Placakyte, Phys.\ Rev.\ D 96, 014011 (2017), arXiv:1701.05838 \\
+\code{ABMP16als117\_5\_nnlo} & 42750 & 1 & $\alpha_s$ down-variation & same \\
+\code{ABMP16als119\_5\_nnlo} & 42810 & 1 & $\alpha_s$ up-variation & same \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\noindent Eigenvector/error-set members are only fully populated at the
+physical central scale ($H_T/2$); off-diagonal scale points carry only the
+central (member~0) PDF for each family. LHAPDF IDs and member counts were
+cross-checked against LHAPDF's official \code{pdfsets.index} and match the
+member counts present in this repository's converted data; the literature
+references are the standard citations for these PDF groups.
+
+\end{document}
