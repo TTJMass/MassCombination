@@ -20,6 +20,13 @@ import tarfile
 import json
 from math import isclose
 
+# Local generated/runtime folders inside mtpole-ttj-pyconvino that Condor workers
+# never need (they write their own output on the worker) and that can grow to
+# dominate the tarball size (output/output_pre-preapp accumulate every local
+# doFit.py run; plots_theory* accumulate every local theory-plot run).
+MTP_TARBALL_EXCLUDES = ['plots_fit', 'plots_interp', 'rhoPlotNNLO', 'logs',
+                         'output', 'output_pre-preapp', 'plots_theory', '__pycache__']
+
 
 def parse_extra_correlations(extra_file_path):
     """Parse extra_correlations.txt into a dict of mappings.
@@ -63,7 +70,9 @@ def frange(start, stop, step):
 def make_tarball(components, tarball_path, exclude_for_dirs=None):
     """Create a tar.gz archive containing the listed files/dirs.
 
-    components: list of absolute paths to files or directories
+    components: list of absolute paths to files or directories, or (path, arcname)
+                tuples to override the default top-level arcname (e.g. to nest a
+                file under a subdirectory instead of dropping it at the tarball root)
     exclude_for_dirs: dict mapping component absolute path -> list of substrings;
                       any file/dir whose relative path contains one of those
                       substrings will be skipped when adding that component.
@@ -72,8 +81,11 @@ def make_tarball(components, tarball_path, exclude_for_dirs=None):
 
     with tarfile.open(tarball_path, 'w:gz') as tar:
         for comp in components:
+            arcname_override = None
+            if isinstance(comp, tuple):
+                comp, arcname_override = comp
             comp = os.path.abspath(comp)
-            base = os.path.basename(comp.rstrip('/'))
+            base = arcname_override or os.path.basename(comp.rstrip('/'))
 
             if os.path.isfile(comp):
                 tar.add(comp, arcname=base)
@@ -111,6 +123,27 @@ def make_tarball(components, tarball_path, exclude_for_dirs=None):
                     fullpath = os.path.join(root, fname)
                     arcname = os.path.join(base, relpath)
                     tar.add(fullpath, arcname=arcname)
+
+
+def single_exp_npz_components():
+    """(path, arcname) tuples for the three single-experiment pyconvino NPZ fits
+    (CMS-only, ATLAS8-only, ATLAS13-only). plotConstraintsAndPulls.py's
+    --pulls/--covCompare reads these via configs.input_f's
+    '../pyconvino/out/<name>.npz' paths, resolved relative to mtpole-ttj-pyconvino/
+    (see the CWD-independent fallback in _load_single_exp_objs there). Shipped
+    nested under pyconvino/out/ -- a sibling of mtpole-ttj-pyconvino/ in the
+    extracted tarball -- so that fallback finds them on the worker node, which has
+    no other copy of pyconvino/out/.
+    """
+    pyconvino_out = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'pyconvino', 'out'))
+    components = []
+    for name in ('CMSOnly_result.npz', 'ATLAS8Only_result.npz', 'ATLAS13Only_result.npz'):
+        npz_path = os.path.join(pyconvino_out, name)
+        if os.path.isfile(npz_path):
+            components.append((npz_path, os.path.join('pyconvino', 'out', name)))
+        else:
+            print(f"WARNING: single-exp NPZ not found, --covCompare will be incomplete on Condor: {npz_path}")
+    return components
 
 
 def sanitize(s):
@@ -354,8 +387,8 @@ def main():
                         help='Force the legacy live-AFS ROOT theory path (inputs/theory_path.txt) even if '
                              '--nlo-theory-json exists. For debugging/fallback only.')
     parser.add_argument('--stripper-theory-json',
-                        default=os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'theory-data', 'newdata.json')),
-                        help='Path to the converted NNLO/--stripper theory JSON (theory-data/newdata.json). When '
+                        default=os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'theory-data', 'withVVF', 'data.json')),
+                        help='Path to the converted NNLO/--stripper theory JSON (theory-data/withVVF/data.json). When '
                              'present and --mode new, it is shipped inside the setup tarball and passed as '
                              '--stripperPath, so --stripper fits never read this 115MB file live off AFS '
                              '(doFit.py otherwise defaults --stripperPath to a hardcoded AFS path). Ignored for '
@@ -399,7 +432,9 @@ def main():
             json_path = os.path.abspath(json_arg)
             if os.path.isfile(json_path):
                 components.append(json_path)
-        exclude_map = {os.path.abspath(mtp): ['plots_fit', 'plots_interp', 'rhoPlotNNLO', 'logs']} if os.path.isdir(mtp) else {}
+        if args.mode == 'new':
+            components.extend(single_exp_npz_components())
+        exclude_map = {os.path.abspath(mtp): MTP_TARBALL_EXCLUDES} if os.path.isdir(mtp) else {}
         out_path = os.path.abspath(args.build_shared_tarball)
         os.makedirs(os.path.dirname(out_path) or '.', exist_ok=True)
         print(f"Building shared package tarball at {out_path} from: {components}")
@@ -488,12 +523,14 @@ def main():
     mtp = os.path.abspath(args.dofit_path)
     if os.path.isdir(mtp) and not args.shared_package_tarball:
         tar_components.append(mtp)
+        if args.mode == 'new':
+            tar_components.extend(single_exp_npz_components())
 
     # Ship a theory JSON inside the tarball instead of reading it live off AFS
     # from inside the fit (the dominant AFS load source under heavy
     # concurrent scan-job load, see PLAN_afs_load_fix.md). Only the new
     # (pyconvino) stack knows how to read either JSON. Shared by the NLO
-    # (theory-data/powheg_generations) and NNLO/--stripper (newdata.json,
+    # (theory-data/powheg_generations) and NNLO/--stripper (theory-data/withVVF/data.json,
     # 115MB -- well within what transfer_input_files already proves out at
     # 268MB for the conda-pack env) theory sources below.
     def _ship_or_fallback(json_path, no_ship_flag, fallback_value, flag_name, extra_warning):
@@ -540,7 +577,7 @@ def main():
     # exclude heavy or runtime/generated folders from mtpole-ttj to keep package small
     exclude_map = {}
     if os.path.isdir(mtp):
-        exclude_map[os.path.abspath(mtp)] = ['plots_fit', 'plots_interp', 'rhoPlotNNLO', 'logs']
+        exclude_map[os.path.abspath(mtp)] = MTP_TARBALL_EXCLUDES
 
     # decide whether to (re)create the tarball. If requested, reuse an existing
     # tarball when the set of components and exclude-map keys match previous run.

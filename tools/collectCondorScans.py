@@ -37,6 +37,22 @@ import mplhep as hep
 hep.style.use(hep.style.CMS)
 
 
+# Sanity cap (GeV) for flagging a scan point as "same as nominal": the scan
+# point whose central mass is *closest* to the nominal fit's central mass is
+# taken as the one that reproduces the actual/default correlation, since two
+# independently-run Minuit fits over the same effective correlation matrix
+# converge to slightly different floats (~1e-12-1e-6 GeV observed here)
+# rather than bit-identical ones -- especially now that results.json (full
+# float64) is preferred over fit.log's 6-decimal-place printed text, so exact
+# `==` essentially never matches. A fixed absolute tolerance doesn't work
+# either: scans where the central mass barely depends on the correlation
+# (e.g. eff_b_heavy_1) have several neighboring grid points within any single
+# global tolerance of the true match. Nearest-point selection adapts to each
+# scan's own sensitivity; this cap just guards against force-matching some
+# unrelated point on a scan whose grid doesn't actually cross the nominal
+# correlation value at all.
+NOMINAL_MATCH_MAX_ABS = 0.01
+
 RAW_MT_RE = re.compile(
     r"raw\s+mt\s*=\s*([0-9.+-eE]+)\s*\+/-\s*([0-9.+-eE]+)\s*\(exp\)\s*"
     r"(?:\+/-\s*[0-9.+-eE]+\s*\(interp\)\s*)?"
@@ -477,9 +493,20 @@ def plot_scan(scanname: str, scan: dict, outdir: str, unblind: bool = False) -> 
         nom_c = centrals[0]
         nom_unc = total_uncs[0]
 
-    # mask of entries that are exactly identical to nominal central
+    # mask flagging the single entry closest to nominal central (see
+    # NOMINAL_MATCH_MAX_ABS's docstring -- independently-converged fits are
+    # never bit-identical, so this can't be an exact-equality check)
+    same_as_nom = np.zeros(len(entries_sorted), dtype=bool)
     try:
-        same_as_nom = np.array([(e.get('central') is not None and nom_c is not None and e.get('central') == nom_c) for e in entries_sorted], dtype=bool)
+        if nom_c is not None and not math.isnan(nom_c):
+            # exclude the nominal entry itself (normalize_scans appends it to
+            # `entries` with value=None -- its central is bit-identical to
+            # nom_c by construction, which would always win the argmin below)
+            cand = [(i, e['central']) for i, e in enumerate(entries_sorted) if e.get('central') is not None and e.get('value') is not None]
+            if cand:
+                best_i, best_c = min(cand, key=lambda t: abs(t[1] - nom_c))
+                if abs(best_c - nom_c) <= NOMINAL_MATCH_MAX_ABS:
+                    same_as_nom[best_i] = True
     except Exception:
         same_as_nom = np.zeros(len(entries_sorted), dtype=bool)
     # check if there are multiple matches. If so, and the name includes "SinglePart" choose the point where the correlation value is 0.75
@@ -953,6 +980,8 @@ def plot_2d(scans: Dict[str, dict], outdir: str):
         nom_c = nom['central'] if nom else np.nan
         nom_u = nom['total_unc'] if nom else np.nan
 
+        best_i = None
+        best_delta = None
         for e in s.get('entries', []):
             v = e['value']
             if v is None:
@@ -972,12 +1001,15 @@ def plot_2d(scans: Dict[str, dict], outdir: str):
                 NonInv[i, j] = True
             if e.get('regularized'):
                 Regularized[i, j] = True
-            # mark if this entry's central equals the nominal central exactly
-            try:
-                if (e.get('central') is not None) and (nom_c is not None) and (e.get('central') == nom_c):
-                    Same[i, j] = True
-            except Exception:
-                pass
+            # track the entry whose central is closest to nominal (see
+            # NOMINAL_MATCH_MAX_ABS's docstring on why not an equality check)
+            if nom_c is not None and not (isinstance(nom_c, float) and math.isnan(nom_c)):
+                delta = abs(e['central'] - nom_c)
+                if best_delta is None or delta < best_delta:
+                    best_delta = delta
+                    best_i = i
+        if best_i is not None and best_delta <= NOMINAL_MATCH_MAX_ABS:
+            Same[best_i, j] = True
         # check if there are multiple matches. If so, and the name includes "SinglePart" choose the point where the correlation value is 0.75
         # if 'SinglePart' in name:
         if True:

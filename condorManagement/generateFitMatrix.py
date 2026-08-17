@@ -35,7 +35,8 @@ import sys
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'mtpole-ttj-pyconvino'))
 from matrix_axes import (SETUP_TO_DATASET_KEY, DATASET_KEY_TO_SETUP, theory_tag, valid_combo,  # noqa: E402
                           REF_DATASET_KEY, REF_THEORY_SOURCE, REF_ORDER, REF_PDF,
-                          SWEEP_DATASET_KEYS, SWEEP_ORDERS, SWEEP_PDFS, POLY_ORDERS)
+                          SWEEP_DATASET_KEYS, SWEEP_ORDERS, SWEEP_PDFS, POLY_ORDERS,
+                          STRIPPER_VARIANTS)
 from createCondorJobs import sanitize  # noqa: E402
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -68,15 +69,22 @@ POI_SPLIT_ENTRIES = [
 ]
 
 
+# --tnp is hard-incompatible in doFit.py with these (raises ValueError; those
+# breakdown paths aren't TNP-aware). doBreakdown()/doAdditiveMassBreakdown()/
+# doExpStatSystBreakdown() run unconditionally regardless of these flags, so
+# dropping them for --tnp jobs does not lose the breakdown itself.
+TNP_INCOMPATIBLE_FLAGS = {'--nuisanceFit', '--budget', '--globalImpacts', '--pdfEigen', '--systEigen'}
+
+
 def build_matrix():
     """Returns a list of axis-tuple dicts making up the concrete v1 matrix."""
     entries = []
 
-    def add(category, dataset_key, theory_source, order, pdf, poi_config):
+    def add(category, dataset_key, theory_source, order, pdf, poi_config, variant='plain'):
         entries.append({
             'category': category, 'dataset_key': dataset_key,
             'theory_source': theory_source, 'order': order, 'pdf': pdf,
-            'poi_config': poi_config,
+            'poi_config': poi_config, 'variant': variant,
         })
 
     add('reference', REF_DATASET_KEY, REF_THEORY_SOURCE, REF_ORDER, REF_PDF, 'single')
@@ -92,11 +100,15 @@ def build_matrix():
     # Full stripper order x PDF sweep for all 7 user-facing fits (extended
     # 2026-07-13 from just the reference/full-combo dataset) -- drives each
     # fit's own order-to-order / PDF-to-PDF / legacy-vs-new-NLO diagnostic
-    # plots in matrix_comparison_plot.py.
+    # plots in matrix_comparison_plot.py. Extended 2026-08-05 to cross every
+    # sweep point with STRIPPER_VARIANTS (plain/tnp/expScale) -- user decision
+    # to always get all three scale-uncertainty-source settings, mirroring
+    # how POLY_ORDERS is already crossed with everything.
     for dk in SWEEP_DATASET_KEYS:
         for order in STRIPPER_ORDERS_FOR_SWEEP:
             for pdf in STRIPPER_PDFS_FOR_SWEEP:
-                add('sweep', dk, 'stripper_json', order, pdf, 'single')
+                for variant in STRIPPER_VARIANTS:
+                    add('sweep', dk, 'stripper_json', order, pdf, 'single', variant=variant)
 
     for dk, poi_config in POI_SPLIT_ENTRIES:
         add('poi_split', dk, REF_THEORY_SOURCE, REF_ORDER, REF_PDF, poi_config)
@@ -106,12 +118,19 @@ def build_matrix():
 
 def axis_tag(entry):
     setup = DATASET_KEY_TO_SETUP[entry['dataset_key']]
-    return '__'.join([setup, theory_tag(entry['theory_source'], entry['order']), entry['pdf'], entry['poi_config'],
-                       f"poly{entry['poly_order']}"])
+    parts = [setup, theory_tag(entry['theory_source'], entry['order']), entry['pdf'], entry['poi_config'],
+              f"poly{entry['poly_order']}"]
+    if entry.get('variant', 'plain') != 'plain':
+        parts.append(entry['variant'])
+    return '__'.join(parts)
 
 
 def dofit_extra_args_for(entry, common_extra_args):
-    parts = [common_extra_args] if common_extra_args else []
+    variant = entry.get('variant', 'plain')
+    common_tokens = common_extra_args.split() if common_extra_args else []
+    if variant == 'tnp':
+        common_tokens = [t for t in common_tokens if t not in TNP_INCOMPATIBLE_FLAGS]
+    parts = [' '.join(common_tokens)] if common_tokens else []
     parts.append(f"--exp {entry['dataset_key']}")
     parts.append(f"--PDF {entry['pdf']}")
     if entry['theory_source'] == 'stripper_json':
@@ -123,6 +142,10 @@ def dofit_extra_args_for(entry, common_extra_args):
     elif entry['poi_config'] == 'split_exp':
         parts.append('--splitMassesExp')
     parts.append(f"--polyOrder {entry['poly_order']}")
+    if variant == 'tnp':
+        parts.append('--tnp')
+    elif variant == 'expScale':
+        parts.append('--expScale')
     return ' '.join(parts)
 
 
@@ -136,9 +159,19 @@ def main():
                          choices=['reference', 'standalone', 'atlas_energy_combo', 'sweep', 'other_combo',
                                   'poi_split', 'all'],
                          default=['all'], help='Restrict generation to these categories')
-    parser.add_argument('--common-dofit-extra-args', default='--interpCheck --nuisanceFit --pulls --budget',
+    parser.add_argument('--datasets', nargs='+', default=None,
+                         help='Restrict the sweep category to these dataset_key(s) only (e.g. CMS_13TeV_npz). '
+                              'Useful for a small test slice before generating the full sweep. No effect on '
+                              'other categories.')
+    parser.add_argument('--variants', nargs='+', choices=list(STRIPPER_VARIANTS), default=None,
+                         help='Restrict the sweep category to these stripper variant(s) only (plain/tnp/expScale). '
+                              'Useful for e.g. generating only the new --tnp/--expScale jobs without regenerating '
+                              'the already-existing plain ones. No effect on other categories.')
+    parser.add_argument('--common-dofit-extra-args', default='--interpCheck --nuisanceFit --pulls --budget --covCompare --globalImpacts',
                          help='Extra doFit.py args applied to every job, before the per-axis-tuple ones '
-                              '(mirrors writeAllCondorJobs_pyconvino.sh commonArgs)')
+                              '(mirrors writeAllCondorJobs_pyconvino.sh commonArgs). For --tnp jobs, '
+                              'TNP_INCOMPATIBLE_FLAGS are automatically dropped (doFit.py hard-fails on '
+                              '--tnp combined with --nuisanceFit/--budget/--globalImpacts/--pdfEigen/--systEigen).')
     parser.add_argument('--conda-pack-tarball',
                          default=os.path.join(REPO_ROOT, 'envCache', 'masscomb_packed.tar.gz'),
                          help='Passed through to createCondorJobs.py')
@@ -146,7 +179,7 @@ def main():
                          default=os.path.join(REPO_ROOT, 'theory-data', 'nlo_converted.json'),
                          help='Passed through to createCondorJobs.py')
     parser.add_argument('--stripper-theory-json',
-                         default=os.path.join(REPO_ROOT, 'theory-data', 'newdata.json'),
+                         default=os.path.join(REPO_ROOT, 'theory-data', 'withVVF', 'data.json'),
                          help='Passed through to createCondorJobs.py')
     parser.add_argument('--blind-salt-file', default=os.path.expanduser('~/.masscomb_blind_salt'),
                          help='Passed through to createCondorJobs.py')
@@ -185,11 +218,16 @@ def main():
     entries = build_matrix()
     if 'all' not in args.categories:
         entries = [e for e in entries if e['category'] in args.categories]
+    if args.datasets is not None:
+        entries = [e for e in entries if e['category'] != 'sweep' or e['dataset_key'] in args.datasets]
+    if args.variants is not None:
+        entries = [e for e in entries if e['category'] != 'sweep' or e['variant'] in args.variants]
 
     resolved = []
     skipped = []
     for e in entries:
-        if not valid_combo(e['dataset_key'], e['theory_source'], e['order'], e['pdf'], e['poi_config']):
+        if not valid_combo(e['dataset_key'], e['theory_source'], e['order'], e['pdf'], e['poi_config'],
+                            e.get('variant', 'plain')):
             skipped.append(e)
             continue
         resolved.append(e)
@@ -264,7 +302,8 @@ def main():
         manifest.append({
             'axis_tag': tag, 'category': e['category'], 'dataset_key': e['dataset_key'],
             'theory_source': e['theory_source'], 'order': e['order'], 'pdf': e['pdf'],
-            'poi_config': e['poi_config'], 'poly_order': e['poly_order'], 'setup_path': setup_path,
+            'poi_config': e['poi_config'], 'poly_order': e['poly_order'], 'variant': e.get('variant', 'plain'),
+            'setup_path': setup_path,
             'eos_output_path': eos_output_path, 'jobs_folder': jobs_folder,
             'dofit_extra_args': dofit_extra_args,
         })
