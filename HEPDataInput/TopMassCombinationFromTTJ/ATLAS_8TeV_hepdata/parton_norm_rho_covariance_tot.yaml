@@ -1,0 +1,200 @@
+dependent_variables
+- header: {name: covariance, units: ''}
+  values:
+  - {value: 0.00473414}
+  - {value: 0.00374988}
+  - {value: 0.00187132}
+  - {value: -0.00267141}
+  - {value: -0.00757664}
+  - {value: -0.0027818}
+  - {value: -0.0015277}
+  - {value: -0.000145764}
+  - {value: 0.00374988}
+  - {value: 0.0206202}
+  - {value: -0.0121551}
+  - {value: 0.00566483}
+  - {value: -0.0106778}
+  - {value: -0.00245413}
+  - {value: -0.00167123}
+  - {value: -0.000120099}
+  - {value: 0.00187132}
+  - {value: -0.0121551}
+  - {value: 0.0161986}
+  - {value: -0.0113775}
+  - {value: 0.00137906}
+  - {value: -0.00419117}
+  - {value: -0.000484384}
+  - {value: -5.06478e-05}
+  - {value: -0.00267141}
+  - {value: 0.00566483}
+  - {value: -0.0113775}
+  - {value: 0.015516}
+  - {value: -0.00146351}
+  - {value: 0.00141492}
+  - {value: -0.000344113}
+  - {value: -2.16903e-05}
+  - {value: -0.00757664}
+  - {value: -0.0106778}
+  - {value: 0.00137906}
+  - {value: -0.00146351}
+  - {value: 0.016203}
+  - {value: 0.00256498}
+  - {value: 0.00198257}
+  - {value: 0.000202731}
+  - {value: -0.0027818}
+  - {value: -0.00245413}
+  - {value: -0.00419117}
+  - {value: 0.00141492}
+  - {value: 0.00256498}
+  - {value: 0.0143794}
+  - {value: 0.000790759}
+  - {value: 6.16775e-05}
+  - {value: -0.0015277}
+  - {value: -0.00167123}
+  - {value: -0.000484384}
+  - {value: -0.000344113}
+  - {value: 0.00198257}
+  - {value: 0.000790759}
+  - {value: 0.00456138}
+  - {value: 0.00011167}
+  - {value: -0.000145764}
+  - {value: -0.000120099}
+  - {value: -5.06478e-05}
+  - {value: -2.16903e-05}
+  - {value: 0.000202731}
+  - {value: 6.16775e-05}
+  - {value: 0.00011167}
+  - {value: 6.04674e-05}
+independent_variables
+- header: {name: parton level $\rho$ bin number x}
+  values:
+  - {high: 1.5, low: 0.5}
+  - {high: 2.5, low: 1.5}
+  - {high: 3.5, low: 2.5}
+  - {high: 4.5, low: 3.5}
+  - {high: 5.5, low: 4.5}
+  - {high: 6.5, low: 5.5}
+  - {high: 7.5, low: 6.5}
+  - {high: 8.5, low: 7.5}
+  - {high: 1.5, low: 0.5}
+  - {high: 2.5, low: 1.5}
+  - {high: 3.5, low: 2.5}
+  - {high: 4.5, low: 3.5}
+  - {high: 5.5, low: 4.5}
+  - {high: 6.5, low: 5.5}
+  - {high: 7.5, low: 6.5}
+  - {high: 8.5, low: 7.5}
+  - {high: 1.5, low: 0.5}
+  - {high: 2.5, low: 1.5}
+  - {high: 3.5, low: 2.5}
+  - {high: 4.5, low: 3.5}
+  - {high: 5.5, low: 4.5}
+  - {high: 6.5, low: 5.5}
+  - {high: 7.5, low: 6.5}
+  - {high: 8.5, low: 7.5}
+  - {high: 1.5, low: 0.5}
+  - {high: 2.5, low: 1.5}
+  - {high: 3.5, low: 2.5}
+  - {high: 4.5, low: 3.5}
+  - {high: 5.5, low: 4.5}
+  - {high: 6.5, low: 5.5}
+  - {high: 7.5, low: 6.5}
+  - {high: 8.5, low: 7.5}
+  - {high: 1.5, low: 0.5}
+  - {high: 2.5, low: 1.5}
+  - {high: 3.5, low: 2.5}
+  - {high: 4.5, low: 3.5}
+  - {high: 5.5, low: 4.5}
+  - {high: 6.5, low: 5.5}
+  - {high: 7.5, low: 6.5}
+  - {high: 8.5, low: 7.5}
+  - {high: 1.5, low: 0.5}
+  - {high: 2.5, low: 1.5}
+  - {high: 3.5, low: 2.5}
+  - {high: 4.5, low: 3.5}
+  - {high: 5.5, low: 4.5}
+  - {high: 6.5, low: 5.5}
+  - {high: 7.5, low: 6.5}
+  - {high: 8.5, low: 7.5}
+  - {high: 1.5, low: 0.5}
+  - {high: 2.5, low: 1.5}
+  - {high: 3.5, low: 2.5}
+  - {high: 4.5, low: 3.5}
+  - {high: 5.5, low: 4.5}
+  - {high: 6.5, low: 5.5}
+  - {high: 7.5, low: 6.5}
+  - {high: 8.5, low: 7.5}
+  - {high: 1.5, low: 0.5}
+  - {high: 2.5, low: 1.5}
+  - {high: 3.5, low: 2.5}
+  - {high: 4.5, low: 3.5}
+  - {high: 5.5, low: 4.5}
+  - {high: 6.5, low: 5.5}
+  - {high: 7.5, low: 6.5}
+  - {high: 8.5, low: 7.5}
+- header: {name: parton level $\rho$ bin number y}
+  values:
+  - {high: 1.5, low: 0.5}
+  - {high: 1.5, low: 0.5}
+  - {high: 1.5, low: 0.5}
+  - {high: 1.5, low: 0.5}
+  - {high: 1.5, low: 0.5}
+  - {high: 1.5, low: 0.5}
+  - {high: 1.5, low: 0.5}
+  - {high: 1.5, low: 0.5}
+  - {high: 2.5, low: 1.5}
+  - {high: 2.5, low: 1.5}
+  - {high: 2.5, low: 1.5}
+  - {high: 2.5, low: 1.5}
+  - {high: 2.5, low: 1.5}
+  - {high: 2.5, low: 1.5}
+  - {high: 2.5, low: 1.5}
+  - {high: 2.5, low: 1.5}
+  - {high: 3.5, low: 2.5}
+  - {high: 3.5, low: 2.5}
+  - {high: 3.5, low: 2.5}
+  - {high: 3.5, low: 2.5}
+  - {high: 3.5, low: 2.5}
+  - {high: 3.5, low: 2.5}
+  - {high: 3.5, low: 2.5}
+  - {high: 3.5, low: 2.5}
+  - {high: 4.5, low: 3.5}
+  - {high: 4.5, low: 3.5}
+  - {high: 4.5, low: 3.5}
+  - {high: 4.5, low: 3.5}
+  - {high: 4.5, low: 3.5}
+  - {high: 4.5, low: 3.5}
+  - {high: 4.5, low: 3.5}
+  - {high: 4.5, low: 3.5}
+  - {high: 5.5, low: 4.5}
+  - {high: 5.5, low: 4.5}
+  - {high: 5.5, low: 4.5}
+  - {high: 5.5, low: 4.5}
+  - {high: 5.5, low: 4.5}
+  - {high: 5.5, low: 4.5}
+  - {high: 5.5, low: 4.5}
+  - {high: 5.5, low: 4.5}
+  - {high: 6.5, low: 5.5}
+  - {high: 6.5, low: 5.5}
+  - {high: 6.5, low: 5.5}
+  - {high: 6.5, low: 5.5}
+  - {high: 6.5, low: 5.5}
+  - {high: 6.5, low: 5.5}
+  - {high: 6.5, low: 5.5}
+  - {high: 6.5, low: 5.5}
+  - {high: 7.5, low: 6.5}
+  - {high: 7.5, low: 6.5}
+  - {high: 7.5, low: 6.5}
+  - {high: 7.5, low: 6.5}
+  - {high: 7.5, low: 6.5}
+  - {high: 7.5, low: 6.5}
+  - {high: 7.5, low: 6.5}
+  - {high: 7.5, low: 6.5}
+  - {high: 8.5, low: 7.5}
+  - {high: 8.5, low: 7.5}
+  - {high: 8.5, low: 7.5}
+  - {high: 8.5, low: 7.5}
+  - {high: 8.5, low: 7.5}
+  - {high: 8.5, low: 7.5}
+  - {high: 8.5, low: 7.5}
+  - {high: 8.5, low: 7.5}

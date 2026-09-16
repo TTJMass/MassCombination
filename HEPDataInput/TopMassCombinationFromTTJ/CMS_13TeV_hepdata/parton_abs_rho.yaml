@@ -1,0 +1,53 @@
+
+independent_variables:
+- header: {name: '$\rho$', units: '1'}
+  values:
+  - {low: 0.0, high: 0.3}
+  - {low: 0.3, high: 0.45}
+  - {low: 0.45, high: 0.7}
+  - {low: 0.7, high: 1.0}
+
+dependent_variables:
+- header: {name: '$\mathrm{d} \sigma_{\mathrm{t\bar{t}+jet}}/\mathrm{d}\rho$', units: 'fb'}
+  values:
+  - value: 107.48392
+    errors:
+    - asymerror:
+        minus: -5.757716
+        plus: 5.914901
+      label: total
+    - asymerror:
+        minus: -1.682264
+        plus: 1.688735
+      label: stat
+  - value: 611.468987
+    errors:
+    - asymerror:
+        minus: -22.921688
+        plus: 24.791936
+      label: total
+    - asymerror:
+        minus: -6.214013
+        plus: 6.238334
+      label: stat
+  - value: 671.66445
+    errors:
+    - asymerror:
+        minus: -23.191581
+        plus: 26.935043
+      label: total
+    - asymerror:
+        minus: -5.199621
+        plus: 5.207175
+      label: stat
+  - value: 131.09691
+    errors:
+    - asymerror:
+        minus: -7.593656
+        plus: 9.327908
+      label: total
+    - asymerror:
+        minus: -3.185999
+        plus: 3.202493
+      label: stat
+

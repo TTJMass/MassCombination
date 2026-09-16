@@ -1,0 +1,32 @@
+[global]
+
+	isDifferential = false
+	normalise = false
+
+[end global]
+
+[inputs]
+
+	nFiles = 1 
+	file0 = rho_cms_inputs.txt
+
+[end inputs]
+
+[observables]
+
+	cms_bin0 = cms_abs_xsec_rho_bin0
+	cms_bin1 = cms_abs_xsec_rho_bin1
+	cms_bin2 = cms_abs_xsec_rho_bin2
+	cms_bin3 = cms_abs_xsec_rho_bin3
+
+[end observables]
+
+[correlations]
+
+	#!FILE  =  extra_correlations.txt
+
+[end correlations]
+
+[uncertainty impacts]
+
+[end uncertainty impacts]

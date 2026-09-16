@@ -1,0 +1,60 @@
+
+independent_variables:
+- header: {name: 'parton level $\rho$ bin number x'}
+  values:
+  - {low: -0.5, high: 0.5}
+  - {low: 0.5, high: 1.5}
+  - {low: 1.5, high: 2.5}
+  - {low: 2.5, high: 3.5}
+  - {low: -0.5, high: 0.5}
+  - {low: 0.5, high: 1.5}
+  - {low: 1.5, high: 2.5}
+  - {low: 2.5, high: 3.5}
+  - {low: -0.5, high: 0.5}
+  - {low: 0.5, high: 1.5}
+  - {low: 1.5, high: 2.5}
+  - {low: 2.5, high: 3.5}
+  - {low: -0.5, high: 0.5}
+  - {low: 0.5, high: 1.5}
+  - {low: 1.5, high: 2.5}
+  - {low: 2.5, high: 3.5}
+
+- header: {name: 'parton level $\rho$ bin number y'}
+  values:
+  - {low: 2.5, high: 3.5}
+  - {low: 2.5, high: 3.5}
+  - {low: 2.5, high: 3.5}
+  - {low: 2.5, high: 3.5}
+  - {low: 1.5, high: 2.5}
+  - {low: 1.5, high: 2.5}
+  - {low: 1.5, high: 2.5}
+  - {low: 1.5, high: 2.5}
+  - {low: 0.5, high: 1.5}
+  - {low: 0.5, high: 1.5}
+  - {low: 0.5, high: 1.5}
+  - {low: 0.5, high: 1.5}
+  - {low: -0.5, high: 0.5}
+  - {low: -0.5, high: 0.5}
+  - {low: -0.5, high: 0.5}
+  - {low: -0.5, high: 0.5}
+
+dependent_variables:
+- header: {name: 'covariance', units: ''}
+  values:
+  - value: -8.4e-05
+  - value: -5.7e-05
+  - value: 0.000104
+  - value: 2.5e-05
+  - value: -0.000785
+  - value: -0.000322
+  - value: 0.00101
+  - value: 0.000104
+  - value: 0.000232
+  - value: 0.000188
+  - value: -0.000322
+  - value: -5.7e-05
+  - value: 0.000622
+  - value: 0.000232
+  - value: -0.000785
+  - value: -8.4e-05
+

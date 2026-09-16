@@ -1,0 +1,176 @@
+---
+comment: | # preserve newlines
+   Measurement of the top quark pole mass using $\text{t}\overline{\text{t}}\text{+jet}$ events in the dilepton final state in proton-proton collisions at$\sqrt{s}=$ 13 TeV. A measurement of the top quark pole mass $m_{\text{t}}^{\text{pole}}$ in events where a top quark-antiquark pair ($\text{t}\overline{\text{t}}$) is produced in association with at least one additional jet ($\text{t}\overline{\text{t}}$+jet) is presented. This analysis is performed using proton-proton collision data at $\sqrt{s}=$ 13 TeV collected by the CMS experiment at the CERN LHC, corresponding to a total integrated luminosity of 36.3fb$^{-1}$. Events with two opposite-sign leptons in the final state ($\text{e}^{+}\text{e}^{-}$, $\mu^{+}\mu^{-}$, $\text{e}^{\pm}\mu^{\mp}$) are analyzed. The reconstruction of the main observable and the event selection are optimized using multivariate analysis techniques based on machine learning. The production cross section is measured as a function of the inverse of the invariant mass of the $\text{t}\overline{\text{t}}$+jet system at the parton level using a maximum likelihood unfolding. Given a reference parton distribution function (PDF), the top quark pole mass is extracted using the theoretical predictions at next-to-leading order. For the ABMP16NLO PDF, this results in $m_{\text{t}}^{\text{pole}}=172.94\pm1.37$.
+
+# Start a new YAML document to indicate a new data table.
+##########################################
+
+##########################################
+### --- Differential distributions --- ###
+##########################################
+
+###################
+### rho ###
+###################
+
+###################
+### absolute ###
+###################
+---
+additional_resources:
+- description: Image file
+  location: parton_abs_rho.png
+- description: Thumbnail image file
+  location: thumb_parton_abs_rho.png
+name: "parton_abs_rho"
+location: Figure 8-a
+description: Absolute differential cross section as a function of the rho observable at parton level.
+keywords: # used for searching, possibly multiple values for each keyword
+- {name: reactions, values: [P P --> TQ TQBAR JET]} #Should list 3 signals ? #cf. https://hepdata-submission.readthedocs.io/en/latest/keywords/partlist.html#OTHER
+- {name: observables, values: [DSIG/DRHO]} #cf. https://hepdata-submission.readthedocs.io/en/latest/keywords/observables.html
+- {name: cmenergies, values: [13000.0]}
+- {name: phrases, values: [Differential Cross Section, Cross Section, Proton-Proton Scattering, Top]} #cf. https://hepdata-submission.readthedocs.io/en/latest/keywords/phrases.html
+data_file: parton_abs_rho.yaml
+
+---
+additional_resources:
+- description: Image file
+  location: parton_abs_rho_covariance_total.png
+- description: Thumbnail image file
+  location: thumb_parton_abs_rho_covariance_total.png
+name: "parton_abs_rho_covariance_total"
+location: Additional material
+description: Covariance matrix for the total uncertainty for the measurement of the absolute differential cross section as a function of the rho observable at parton level.
+keywords: # used for searching, possibly multiple values for each keyword
+- {name: reactions, values: [P P --> TQ TQBAR JET]} #Should list 3 signals ? #cf. https://hepdata-submission.readthedocs.io/en/latest/keywords/partlist.html#OTHER
+- {name: observables, values: [DSIG/DRHO]} #cf. https://hepdata-submission.readthedocs.io/en/latest/keywords/observables.html
+- {name: cmenergies, values: [13000.0]}
+- {name: phrases, values: [Differential Cross Section, Cross Section, Proton-Proton Scattering, Top]} #cf. https://hepdata-submission.readthedocs.io/en/latest/keywords/phrases.html
+data_file: parton_abs_rho_covariance_total.yaml
+
+---
+additional_resources:
+- description: Image file
+  location: parton_abs_rho_covariance_stat.png
+- description: Thumbnail image file
+  location: thumb_parton_abs_rho_covariance_stat.png
+name: "parton_abs_rho_covariance_stat"
+location: Additional material
+description: Covariance matrix for the statistical uncertainty for the measurement of the absolute differential cross section as a function of the rho observable at parton level.
+keywords: # used for searching, possibly multiple values for each keyword
+- {name: reactions, values: [P P --> TQ TQBAR JET]} #Should list 3 signals ? #cf. https://hepdata-submission.readthedocs.io/en/latest/keywords/partlist.html#OTHER
+- {name: observables, values: [DSIG/DRHO]} #cf. https://hepdata-submission.readthedocs.io/en/latest/keywords/observables.html
+- {name: cmenergies, values: [13000.0]}
+- {name: phrases, values: [Differential Cross Section, Cross Section, Proton-Proton Scattering, Top]} #cf. https://hepdata-submission.readthedocs.io/en/latest/keywords/phrases.html
+data_file: parton_abs_rho_covariance_stat.yaml
+
+---
+additional_resources:
+- description: Image file
+  location: parton_abs_rho_covariance_extrapolation.png
+- description: Thumbnail image file
+  location: thumb_parton_abs_rho_covariance_extrapolation.png
+name: "parton_abs_rho_covariance_extrapolation"
+location: Additional material
+description: Covariance matrix for the extrapolation uncertainty for the measurement of the absolute differential cross section as a function of the rho observable at parton level.
+keywords: # used for searching, possibly multiple values for each keyword
+- {name: reactions, values: [P P --> TQ TQBAR JET]} #Should list 3 signals ? #cf. https://hepdata-submission.readthedocs.io/en/latest/keywords/partlist.html#OTHER
+- {name: observables, values: [DSIG/DRHO]} #cf. https://hepdata-submission.readthedocs.io/en/latest/keywords/observables.html
+- {name: cmenergies, values: [13000.0]}
+- {name: phrases, values: [Differential Cross Section, Cross Section, Proton-Proton Scattering, Top]} #cf. https://hepdata-submission.readthedocs.io/en/latest/keywords/phrases.html
+data_file: parton_abs_rho_covariance_extrapolation.yaml
+
+###################
+### normalized ###
+###################
+---
+additional_resources:
+- description: Image file
+  location: parton_norm_rho.png
+- description: Thumbnail image file
+  location: thumb_parton_norm_rho.png
+name: "parton_norm_rho"
+location: Figure 8-b
+description: Normalized differential cross section as a function of the rho observable at parton level.
+keywords: # used for searching, possibly multiple values for each keyword
+- {name: reactions, values: [P P --> TQ TQBAR JET]} #Should list 3 signals ? #cf. https://hepdata-submission.readthedocs.io/en/latest/keywords/partlist.html#OTHER
+- {name: observables, values: [DSIG/DRHO]} #cf. https://hepdata-submission.readthedocs.io/en/latest/keywords/observables.html
+- {name: cmenergies, values: [13000.0]}
+- {name: phrases, values: [Differential Cross Section, Cross Section, Proton-Proton Scattering, Top]} #cf. https://hepdata-submission.readthedocs.io/en/latest/keywords/phrases.html
+data_file: parton_norm_rho.yaml
+
+---
+additional_resources:
+- description: Image file
+  location: parton_norm_rho_covariance_total.png
+- description: Thumbnail image file
+  location: thumb_parton_norm_rho_covariance_total.png
+name: "parton_norm_rho_covariance_total"
+location: Additional material
+description: Covariance matrix for the total uncertainty for the measurement of the normalized differential cross section as a function of the rho observable at parton level.
+keywords: # used for searching, possibly multiple values for each keyword
+- {name: reactions, values: [P P --> TQ TQBAR JET]} #Should list 3 signals ? #cf. https://hepdata-submission.readthedocs.io/en/latest/keywords/partlist.html#OTHER
+- {name: observables, values: [DSIG/DRHO]} #cf. https://hepdata-submission.readthedocs.io/en/latest/keywords/observables.html
+- {name: cmenergies, values: [13000.0]}
+- {name: phrases, values: [Differential Cross Section, Cross Section, Proton-Proton Scattering, Top]} #cf. https://hepdata-submission.readthedocs.io/en/latest/keywords/phrases.html
+data_file: parton_norm_rho_covariance_total.yaml
+
+---
+additional_resources:
+- description: Image file
+  location: parton_norm_rho_covariance_stat.png
+- description: Thumbnail image file
+  location: thumb_parton_norm_rho_covariance_stat.png
+name: "parton_norm_rho_covariance_stat"
+location: Additional material
+description: Covariance matrix for the statistical uncertainty for the measurement of the normalized differential cross section as a function of the rho observable at parton level.
+keywords: # used for searching, possibly multiple values for each keyword
+- {name: reactions, values: [P P --> TQ TQBAR JET]} #Should list 3 signals ? #cf. https://hepdata-submission.readthedocs.io/en/latest/keywords/partlist.html#OTHER
+- {name: observables, values: [DSIG/DRHO]} #cf. https://hepdata-submission.readthedocs.io/en/latest/keywords/observables.html
+- {name: cmenergies, values: [13000.0]}
+- {name: phrases, values: [Differential Cross Section, Cross Section, Proton-Proton Scattering, Top]} #cf. https://hepdata-submission.readthedocs.io/en/latest/keywords/phrases.html
+data_file: parton_norm_rho_covariance_stat.yaml
+
+---
+additional_resources:
+- description: Image file
+  location: parton_norm_rho_covariance_extrapolation.png
+- description: Thumbnail image file
+  location: thumb_parton_norm_rho_covariance_extrapolation.png
+name: "parton_norm_rho_covariance_extrapolation"
+location: Additional material
+description: Covariance matrix for the extrapolation uncertainty for the measurement of the normalized differential cross section as a function of the rho observable at parton level.
+keywords: # used for searching, possibly multiple values for each keyword
+- {name: reactions, values: [P P --> TQ TQBAR JET]} #Should list 3 signals ? #cf. https://hepdata-submission.readthedocs.io/en/latest/keywords/partlist.html#OTHER
+- {name: observables, values: [DSIG/DRHO]} #cf. https://hepdata-submission.readthedocs.io/en/latest/keywords/observables.html
+- {name: cmenergies, values: [13000.0]}
+- {name: phrases, values: [Differential Cross Section, Cross Section, Proton-Proton Scattering, Top]} #cf. https://hepdata-submission.readthedocs.io/en/latest/keywords/phrases.html
+data_file: parton_norm_rho_covariance_extrapolation.yaml
+
+##########################################
+### --- Likelihood fit results --- ###
+##########################################
+
+---
+name: "fit_np_correlation"
+location: Additional material
+description: Correlation matrix for all nuisance parameters and parameters of interest of the Likelihood fit.
+keywords: # used for searching, possibly multiple values for each keyword
+- {name: reactions, values: [P P --> TQ TQBAR JET]} #Should list 3 signals ? #cf. https://hepdata-submission.readthedocs.io/en/latest/keywords/partlist.html#OTHER
+- {name: observables, values: [DSIG/DRHO]} #cf. https://hepdata-submission.readthedocs.io/en/latest/keywords/observables.html
+- {name: cmenergies, values: [13000.0]}
+- {name: phrases, values: [Differential Cross Section, Cross Section, Proton-Proton Scattering, Top]} #cf. https://hepdata-submission.readthedocs.io/en/latest/keywords/phrases.html
+data_file: fit_np_correlation.yaml
+
+---
+name: "np_impacts_pulls"
+location: Data from Figure 9
+description: This table is a numerical representation of Fig. 8 for all nuisance parameters.
+keywords: # used for searching, possibly multiple values for each keyword
+- {name: reactions, values: [P P --> TQ TQBAR JET]} #Should list 3 signals ? #cf. https://hepdata-submission.readthedocs.io/en/latest/keywords/partlist.html#OTHER
+- {name: observables, values: [DSIG/DRHO]} #cf. https://hepdata-submission.readthedocs.io/en/latest/keywords/observables.html
+- {name: cmenergies, values: [13000.0]}
+- {name: phrases, values: [Differential Cross Section, Cross Section, Proton-Proton Scattering, Top]} #cf. https://hepdata-submission.readthedocs.io/en/latest/keywords/phrases.html
+data_file: np_impacts_pulls.yaml
+
+# End of YAML file

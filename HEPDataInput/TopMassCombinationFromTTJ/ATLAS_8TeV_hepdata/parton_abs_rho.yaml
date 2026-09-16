@@ -1,0 +1,62 @@
+dependent_variables
+- header: {name: '$1/\sigma_{\mathrm{t\bar{t}+jet}} \mathrm{d} \sigma_{\mathrm{t\bar{t}+jet}}/\mathrm{d}\rho$', units: ''}
+  values:
+  - errors:
+    - asymerror: {minus: -0, plus: 0}
+      label: total
+    - asymerror: {minus: -0, plus: 0}
+      label: stat
+    value: 26562.1
+  - errors:
+    - asymerror: {minus: -0, plus: 0}
+      label: total
+    - asymerror: {minus: -0, plus: 0}
+      label: stat
+    value: 64152.9
+  - errors:
+    - asymerror: {minus: -0, plus: 0}
+      label: total
+    - asymerror: {minus: -0, plus: 0}
+      label: stat
+    value: 162532
+  - errors:
+    - asymerror: {minus: -0, plus: 0}
+      label: total
+    - asymerror: {minus: -0, plus: 0}
+      label: stat
+    value: 182505
+  - errors:
+    - asymerror: {minus: -0, plus: 0}
+      label: total
+    - asymerror: {minus: -0, plus: 0}
+      label: stat
+    value: 248264
+  - errors:
+    - asymerror: {minus: -0, plus: 0}
+      label: total
+    - asymerror: {minus: -0, plus: 0}
+      label: stat
+    value: 43478.9
+  - errors:
+    - asymerror: {minus: -0, plus: 0}
+      label: total
+    - asymerror: {minus: -0, plus: 0}
+      label: stat
+    value: 22535.2
+  - errors:
+    - asymerror: {minus: -0, plus: 0}
+      label: total
+    - asymerror: {minus: -0, plus: 0}
+      label: stat
+    value: 7164.72
+independent_variables
+- header: {name: '$\rho$', units: '1'}
+  values:
+  - {high: 0.25, low: 0}
+  - {high: 0.325, low: 0.25}
+  - {high: 0.425, low: 0.325}
+  - {high: 0.525, low: 0.425}
+  - {high: 0.675, low: 0.525}
+  - {high: 0.725, low: 0.675}
+  - {high: 0.775, low: 0.725}
+  - {high: 1, low: 0.775}
