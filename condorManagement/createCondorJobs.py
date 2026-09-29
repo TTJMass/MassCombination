@@ -2,7 +2,7 @@
 """Create HTCondor jobs that vary correlation parameters from -1.0 to 1.0
 
 Creates per-parameter jobs that:
- - package the ConvinoSetup folder, the convino executable and the mtpole-ttj folder
+ - package the ConvinoSetup folder and the mtpole-ttj-pyconvino folder
  - modify the extra_correlations.txt locally to set the chosen correlation value
  - run convino with a unique prefix
  - run the doFit.py script on the produced result file
@@ -24,8 +24,8 @@ from math import isclose
 # never need (they write their own output on the worker) and that can grow to
 # dominate the tarball size (output/output_pre-preapp accumulate every local
 # doFit.py run; plots_theory* accumulate every local theory-plot run).
-MTP_TARBALL_EXCLUDES = ['plots_fit', 'plots_interp', 'rhoPlotNNLO', 'logs',
-                         'output', 'output_pre-preapp', 'plots_theory', '__pycache__']
+MTP_TARBALL_EXCLUDES = ['plots_fit', 'plots_interp', 'logs',
+                         'output', 'output_pre-preapp', 'plots_theory', '__pycache__', '.claude']
 
 
 def parse_extra_correlations(extra_file_path):
@@ -283,7 +283,7 @@ fi
 # (non-tarball) file, same as the setup/env tarballs above. A dotfile name
 # (BLIND_SALT_NAME starts with '.') so it is never swept up by the output-copy
 # glob near the end of this script, which doesn't match dotfiles. Empty
-# BLIND_SALT_NAME (--mode old, or no --blind-salt-file configured) makes the
+# BLIND_SALT_NAME (no --blind-salt-file configured) makes the
 # -f check below false and this becomes a no-op.
 BLIND_SALT_NAME={blind_salt_basename}
 if [ -n "$BLIND_SALT_NAME" ] && [ -f "$EXEC_DIR/$BLIND_SALT_NAME" ]; then
@@ -333,11 +333,10 @@ fi
 
 mkdir -p "$OUTDIR"
 # always copy logs and any outputs to aid debugging
-# "output" (new/pyconvino doFit.py: results.json, budget/interp plots, ...)
-# and "plots_fit" (old mtpole-ttj doFit.py) hold the structured fit outputs,
-# written to a path relative to $WORKDIR -- without them only the raw stdout
-# logs get shipped and results.json / plots never reach EOS.
-cp -r convino_run.log {prefix}* *.log *.txt *.pdf plot* plots rhoPlotNNLO output plots_fit "$OUTDIR" 2>/dev/null || true
+# "output" (doFit.py: results.json, budget/interp plots, ...) holds the
+# structured fit outputs, written to a path relative to $WORKDIR -- without it
+# only the raw stdout logs get shipped and results.json / plots never reach EOS.
+cp -r convino_run.log {prefix}* *.log *.txt *.pdf plot* plots output "$OUTDIR" 2>/dev/null || true
 # only mark completed when the fit actually succeeded
 if [ "$FIT_OK" -eq 1 ] && [ -n "$EXEC_DIR" ]; then
     touch "$EXEC_DIR/${{JOBNAME}}.completed" || true
@@ -355,8 +354,7 @@ def main():
     parser.add_argument('eos_output_path', help='Base output path on EOS (directory)')
     parser.add_argument('batch_name', help='Batch name for jobs')
     parser.add_argument('jobs_folder', help='Folder where job .htc, .sh and logs will be written')
-    parser.add_argument('--convino-exe', default=os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'Convino', 'convino')), help='Path to convino executable (default: repository Convino/convino)')
-    parser.add_argument('--dofit-path', default=os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'mtpole-ttj')), help='Path to mtpole-ttj folder containing doFit.py')
+    parser.add_argument('--dofit-path', default=os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'mtpole-ttj-pyconvino')), help='Path to mtpole-ttj-pyconvino folder containing doFit.py')
     parser.add_argument('--min', type=float, default=-1.0, help='Minimum correlation value')
     parser.add_argument('--max', type=float, default=1.0, help='Maximum correlation value')
     parser.add_argument('--step', type=float, default=0.05, help='Step size')
@@ -365,10 +363,8 @@ def main():
     parser.add_argument('--force-tarball', action='store_true', help='Force recreation of the tarball even if metadata matches')
     parser.add_argument('--only-nominal', action='store_true', help='Only create the single nominal job and skip creating the scan jobs')
     parser.add_argument('--do-impacts', action='store_true', help='Run also impacts')
-    parser.add_argument('--mode', choices=['old', 'new'], default='new',
-                        help='Which stack to use: old (Convino C++ binary + mtpole-ttj, decommissioned 2026-07-28 -- see archive/) or new (pyconvino + mtpole-ttj-pyconvino)')
     parser.add_argument('--convino-extra-args', default='',
-                        help='Extra arguments appended verbatim to the convino/pyconvino CLI invocation in the generated shell script.')
+                        help='Extra arguments appended verbatim to the pyconvino CLI invocation in the generated shell script.')
     parser.add_argument('--dofit-extra-args', default='',
                         help='Extra arguments appended verbatim to the doFit.py invocation in the generated shell script.')
     parser.add_argument('--conda-pack-tarball',
@@ -380,19 +376,18 @@ def main():
     parser.add_argument('--nlo-theory-json',
                         default=os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'theory-data', 'nlo_converted.json')),
                         help='Path to the converted NLO theory JSON (built once offline by '
-                             'mtpole-ttj-pyconvino/convertNLOTheoryData.py). When present and --mode new, it is '
+                             'mtpole-ttj-pyconvino/convertNLOTheoryData.py). When present, it is '
                              'shipped inside the setup tarball and used as --thinputpath, so the fit never reads '
-                             'the AFS-hosted powheg_generations ROOT files live. Ignored for --mode old.')
+                             'the AFS-hosted powheg_generations ROOT files live.')
     parser.add_argument('--no-ship-nlo-json', action='store_true',
                         help='Force the legacy live-AFS ROOT theory path (inputs/theory_path.txt) even if '
                              '--nlo-theory-json exists. For debugging/fallback only.')
     parser.add_argument('--stripper-theory-json',
                         default=os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'ttbarj-nnlo-cms-atlas-analysis', 'withVVF_data_nlc.json')),
                         help='Path to the converted NNLO/--stripper theory JSON (ttbarj-nnlo-cms-atlas-analysis/withVVF_data_nlc.json). When '
-                             'present and --mode new, it is shipped inside the setup tarball and passed as '
+                             'present, it is shipped inside the setup tarball and passed as '
                              '--stripperPath, so --stripper fits never read this ~210MB file live off AFS '
-                             '(doFit.py otherwise defaults --stripperPath to a hardcoded AFS path). Ignored for '
-                             '--mode old.')
+                             '(doFit.py otherwise defaults --stripperPath to a hardcoded AFS path).')
     parser.add_argument('--no-ship-stripper-json', action='store_true',
                         help='Force the live-AFS --stripperPath default even if --stripper-theory-json exists. '
                              'For debugging/fallback only.')
@@ -401,8 +396,7 @@ def main():
                         help='Path to the persistent blinding salt file (mtpole-ttj-pyconvino/blinding.py, '
                              'generated once via generate_salt()). Shipped to each job via Condor file '
                              'transfer and exported as MASSCOMB_BLIND_SALT_PATH so blinded (combination) '
-                             'fits can find it on the worker. Only relevant for --mode new; ignored for '
-                             '--mode old (blinding is not implemented for the legacy stack).')
+                             'fits can find it on the worker.')
     parser.add_argument('--shared-package-tarball', default=None,
                         help='Path to a pre-built tarball (see --build-shared-tarball) containing --dofit-path '
                              '(mtpole-ttj-pyconvino) + the theory JSONs -- the part of the per-setup tarball that '
@@ -422,9 +416,6 @@ def main():
 
     if args.build_shared_tarball:
         mtp = os.path.abspath(args.dofit_path)
-        if args.mode == 'new' and os.path.abspath(mtp) == os.path.abspath(
-                os.path.join(os.path.dirname(__file__), '..', 'mtpole-ttj')):
-            mtp = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'mtpole-ttj-pyconvino'))
         components = []
         if os.path.isdir(mtp):
             components.append(mtp)
@@ -432,8 +423,7 @@ def main():
             json_path = os.path.abspath(json_arg)
             if os.path.isfile(json_path):
                 components.append(json_path)
-        if args.mode == 'new':
-            components.extend(single_exp_npz_components())
+        components.extend(single_exp_npz_components())
         exclude_map = {os.path.abspath(mtp): MTP_TARBALL_EXCLUDES} if os.path.isdir(mtp) else {}
         out_path = os.path.abspath(args.build_shared_tarball)
         os.makedirs(os.path.dirname(out_path) or '.', exist_ok=True)
@@ -455,12 +445,6 @@ def main():
                 f'--shared-package-tarball not found: {args.shared_package_tarball}\n'
                 'Build it once with: python3 ' + os.path.abspath(__file__) +
                 ' --build-shared-tarball ' + args.shared_package_tarball)
-
-    # Set mode-dependent defaults (only if user didn't explicitly pass them)
-    if args.mode == 'new':
-        old_default = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'mtpole-ttj'))
-        if os.path.abspath(args.dofit_path) == old_default:
-            args.dofit_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'mtpole-ttj-pyconvino'))
 
     # do impacts only works with only nominal
     # if args.do_impacts and not args.only_nominal:
@@ -491,29 +475,17 @@ def main():
     os.makedirs(args.jobs_folder, exist_ok=True)
     os.makedirs(os.path.join(args.jobs_folder, 'logs'), exist_ok=True)
 
-    # Compute mode-dependent template values
     dofit_folder = os.path.basename(os.path.abspath(args.dofit_path))
 
-    if args.mode == 'old':
-        convino_cmd = './convino -d "$EXTRACTED_SETUP_DIR"/rho_config.txt --prefix "$PREFIX" --noImpacts --neyman'
-        if args.do_impacts:
-            convino_cmd = './convino -d "$EXTRACTED_SETUP_DIR"/rho_config.txt --prefix "$PREFIX" --neyman'
-        if args.convino_extra_args:
-            convino_cmd += ' ' + args.convino_extra_args
-        result_ext = 'txt'
-    else:  # new
-        convino_cmd = 'convino "$EXTRACTED_SETUP_DIR"/rho_config.txt --prefix "$PREFIX" --no-impacts --export npz'
-        if args.do_impacts:
-            convino_cmd = 'convino "$EXTRACTED_SETUP_DIR"/rho_config.txt --prefix "$PREFIX" --export npz'
-        if args.convino_extra_args:
-            convino_cmd += ' ' + args.convino_extra_args
-        result_ext = 'npz'
+    convino_cmd = 'convino "$EXTRACTED_SETUP_DIR"/rho_config.txt --prefix "$PREFIX" --no-impacts --export npz'
+    if args.do_impacts:
+        convino_cmd = 'convino "$EXTRACTED_SETUP_DIR"/rho_config.txt --prefix "$PREFIX" --export npz'
+    if args.convino_extra_args:
+        convino_cmd += ' ' + args.convino_extra_args
+    result_ext = 'npz'
 
-    # create a tarball of the setup folder + convino exe + mtpole-ttj
+    # create a tarball of the setup folder + mtpole-ttj-pyconvino
     tar_components = [setup_path]
-    convino_exe = os.path.abspath(args.convino_exe)
-    if args.mode == 'old' and os.path.exists(convino_exe):
-        tar_components.append(convino_exe)
     # If --shared-package-tarball is given, mtpole-ttj-pyconvino + the theory
     # JSONs (see below) travel in that separately-shipped, separately-cached
     # tarball instead -- they are BYTE-IDENTICAL across every ConvinoSetup, so
@@ -523,20 +495,18 @@ def main():
     mtp = os.path.abspath(args.dofit_path)
     if os.path.isdir(mtp) and not args.shared_package_tarball:
         tar_components.append(mtp)
-        if args.mode == 'new':
-            tar_components.extend(single_exp_npz_components())
+        tar_components.extend(single_exp_npz_components())
 
     # Ship a theory JSON inside the tarball instead of reading it live off AFS
     # from inside the fit (the dominant AFS load source under heavy
-    # concurrent scan-job load, see PLAN_afs_load_fix.md). Only the new
-    # (pyconvino) stack knows how to read either JSON. Shared by the NLO
+    # concurrent scan-job load, see PLAN_afs_load_fix.md). Shared by the NLO
     # (theory-data/powheg_generations) and NNLO/--stripper (ttbarj-nnlo-cms-atlas-analysis/withVVF_data_nlc.json,
     # ~210MB -- well within what transfer_input_files already proves out at
     # 268MB for the conda-pack env) theory sources below.
     def _ship_or_fallback(json_path, no_ship_flag, fallback_value, flag_name, extra_warning):
         json_path = os.path.abspath(json_path)
-        ship = (args.mode == 'new' and not no_ship_flag and os.path.isfile(json_path))
-        if args.mode == 'new' and not ship and not no_ship_flag:
+        ship = not no_ship_flag and os.path.isfile(json_path)
+        if not ship and not no_ship_flag:
             print(f"WARNING: {flag_name} not found at {json_path}; {extra_warning}")
         if ship:
             # Already present in --shared-package-tarball -- just report the
@@ -559,14 +529,11 @@ def main():
         fallback_value=os.path.abspath(args.stripper_theory_json),
         flag_name='--stripper-theory-json',
         extra_warning="--stripper jobs will fall back to doFit.py's hardcoded live-AFS default.")
-    # --stripperPath only exists on the new (pyconvino) doFit.py -- the old
-    # (mtpole-ttj) doFit.py has no such argument and argparse hard-errors on
-    # any unrecognized flag, so this must be omitted entirely for --mode old.
-    stripperpath_flag = f'--stripperPath "{stripperpath_value}"' if args.mode == 'new' else ''
+    stripperpath_flag = f'--stripperPath "{stripperpath_value}"'
 
     blind_salt_file = os.path.abspath(os.path.expanduser(args.blind_salt_file))
-    ship_blind_salt = (args.mode == 'new' and os.path.isfile(blind_salt_file))
-    if args.mode == 'new' and not ship_blind_salt:
+    ship_blind_salt = os.path.isfile(blind_salt_file)
+    if not ship_blind_salt:
         print(f"WARNING: --blind-salt-file not found at {blind_salt_file}; any combination "
               "fit in this batch will hard-fail in blinding._load_salt() on the worker "
               "(unless --unblind is passed via --dofit-extra-args). Run "
@@ -583,9 +550,8 @@ def main():
     # tarball when the set of components and exclude-map keys match previous run.
     meta_path = tarball_name + '.meta.json'
     current_meta = {
-        'components': [os.path.abspath(p) for p in tar_components],
+        'components': [os.path.abspath(p if isinstance(p, str) else p[0]) for p in tar_components],
         'exclude_keys': sorted(list(exclude_map.keys())),
-        'convino_exe': convino_exe,
         'mtp': mtp,
     }
 
@@ -595,7 +561,7 @@ def main():
             with open(meta_path, 'r') as mf:
                 prev = json.load(mf)
             # compare relevant fields
-            if prev.get('components') == current_meta['components'] and prev.get('exclude_keys') == current_meta['exclude_keys'] and prev.get('convino_exe') == current_meta['convino_exe'] and prev.get('mtp') == current_meta['mtp']:
+            if prev.get('components') == current_meta['components'] and prev.get('exclude_keys') == current_meta['exclude_keys'] and prev.get('mtp') == current_meta['mtp']:
                 recreate = False
                 print(f"Reusing existing tarball {tarball_name} (components unchanged)")
         except Exception:

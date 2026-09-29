@@ -246,7 +246,7 @@ def main():
           f"across categories {sorted(set(e['category'] for e in resolved))}")
 
     # Every axis-tuple sharing the same ConvinoSetup produces a BYTE-IDENTICAL
-    # tarball (setup dir + convino exe + mtpole-ttj + the full, unfiltered
+    # tarball (setup dir + mtpole-ttj-pyconvino + the full, unfiltered
     # theory JSONs -- --PDF/--order/--polyOrder are runtime doFit.py flags in
     # the generated .sh, never baked into the tarball). createCondorJobs.py
     # namespaces its tarball path by --jobs-folder, and this script gives
@@ -287,7 +287,7 @@ def main():
         cmd = [
             sys.executable, os.path.join(REPO_ROOT, 'condorManagement', 'createCondorJobs.py'),
             setup_path, eos_output_path, f"{batch_name}__{tag}", jobs_folder,
-            '--only-nominal', '--mode', 'new',
+            '--only-nominal',
             '--conda-pack-tarball', args.conda_pack_tarball,
             '--nlo-theory-json', args.nlo_theory_json,
             '--stripper-theory-json', args.stripper_theory_json,

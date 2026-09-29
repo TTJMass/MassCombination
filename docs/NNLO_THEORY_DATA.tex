@@ -22,8 +22,9 @@
 
 \begin{quote}
 \textit{Summary of the theory-prediction grid stored in
-\code{theory-data/output8/}, \code{theory-data/output13/} and consolidated
-into \code{theory-data/analysis/converted\_data.json}. Restricted to the
+\code{withVVF\_data\_nlc.json}\newline
+(\code{ttbarj-nnlo-cms-atlas-analysis} submodule, built by its
+\code{convertData.py}). Restricted to the
 $\rho$-related differential observables, inclusive cross sections,
 parameters and PDF variations; non-$\rho$ differential distributions are
 omitted.}
@@ -34,10 +35,15 @@ omitted.}
 \begin{itemize}
   \item \textbf{Energies:} 8~TeV and 13~TeV.
   \item \textbf{Orders in the converted JSON:} \code{LO}, \code{NLO},
-        \code{NNLO\_noVVF} (the full physical NNLO prediction). Raw bare
-        \code{NNLO} $\epsilon$-pole XMLs also exist on disk at both energies
-        but are used only as an internal pole-cancellation check, not shipped
-        in the converted dataset.
+        \code{NNLO} (default NNLO prediction) and \code{NNLO\_noVVF} (the
+        older VVF-subtracted variant), at both energies. \code{NNLO} and
+        \code{NNLO\_noVVF} differ in every bin.
+  \item \textbf{Theory nuisance parameters:} per scale point and PDF family,
+        \code{tnp\_eigenvectors} holds per-bin TNP shifts (Chebychev0 model
+        on the series $[\mathrm{LO}, \mathrm{NLO}-\mathrm{LO},
+        \mathrm{NNLO}-\mathrm{NLO}]$). \code{NNLO} has 10 eigenvectors (the
+        10th is the subleading-colour term), \code{NNLO\_noVVF} has 9.
+        \code{normalized\_expanded} holds the expanded-ratio scale variation.
   \item \textbf{Top-quark mass grid:} $167.5,\ 171.5,\ 172.5,\ 173.5,\
         177.5$~GeV, for every order and energy.
   \item \textbf{Scale variations:} 3 central scale choices ($H_T$, $H_T/2$,

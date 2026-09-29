@@ -1,6 +1,5 @@
 #!/bin/bash
 # Generates HTCondor jobs for the NEW pyconvino + mtpole-ttj-pyconvino stack.
-# Mirror of writeAllCondorJobs.sh for the old Convino+mtpole-ttj stack.
 
 eosOutPath="/eos/cms/store/group/cmst3/group/top/sewuchte/MassCombination/condor/_$(date +%Y%m%d)_pyconvino/"
 batchname="MassComb_pyconvino__$(date +%Y%m%d)"
@@ -48,7 +47,6 @@ fi
 # Uncomment the blocks you want to run.
 # escape properly for the usage of ""
 commonArgs=(
-    --mode new
     --dofit-extra-args "--interpCheck --pulls --globalImpacts --covCompare"
     --do-impacts
     --conda-pack-tarball /afs/cern.ch/work/s/sewuchte/private/MassCombination/envCache/masscomb_packed.tar.gz

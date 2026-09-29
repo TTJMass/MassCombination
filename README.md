@@ -12,7 +12,8 @@ plotting scripts, and Condor batch infrastructure.
 | [`pyconvino/`](pyconvino/README.md) | Python/JAX statistical combination (χ² built with JAX, minimized with SciPy). Produces `*_result.{txt,npz,json}`. |
 | [`mtpole-ttj-pyconvino/`](mtpole-ttj-pyconvino/README.md) | Top-mass extraction: fits pyconvino's combination output against NLO/NNLO theory predictions. |
 | [`MtopSummaryPlot/`](MtopSummaryPlot/README.md) | Matplotlib/mplhep summary ("forest") plot of top mass measurements. |
-| [`theory-data/`](theory-data/README.md) | NLO/NNLO POWHEG theory predictions (8/13 TeV). |
+| [`theory-data/`](theory-data/README.md) | NLO POWHEG theory predictions (8/13 TeV), converted to `nlo_converted.json`. |
+| `ttbarj-nnlo-cms-atlas-analysis/` | NNLO theory predictions (8/13 TeV) with TNP eigenvectors: `withVVF_data_nlc.json`. |
 
 Note: `mtpole-ttj-pyconvino` shares its remote with `mtpole-ttj` (an older
 branch of the same repo); it's checked out as a second submodule on its own
@@ -39,9 +40,12 @@ env for Condor batch jobs (see `condorManagement/rebuild_env_pack.sh`).
 - **Experimental**: `Inputs_ATLAS/` and `Inputs_CMS/` hold the reference
   experimental measurement/correlation files; the per-setup combination
   configs under `pyconvino/ConvinoSetups/*/` are built from these.
-- **Theory**: NLO/NNLO POWHEG predictions live in the `theory-data`
-  submodule — see [`theory-data/README.md`](theory-data/README.md) for how
-  to update them.
+  `HEPDataInput/` holds the HEPData records (ATLAS 8 TeV, CMS 13 TeV) and
+  their pyconvino conversions.
+- **Theory**: `theory-data/nlo_converted.json` (NLO, `doFit.py --thinputpath`)
+  and `ttbarj-nnlo-cms-atlas-analysis/withVVF_data_nlc.json` (LO/NLO/NNLO/
+  NNLO_noVVF, `doFit.py --stripper --stripperPath`); see
+  `docs/NNLO_THEORY_DATA.pdf`.
 
 ## How to run
 
@@ -53,8 +57,8 @@ env for Condor batch jobs (see `condorManagement/rebuild_env_pack.sh`).
    summary forest plot.
 
 For batch running on HTCondor, `condorManagement/createCondorJobs.py`
-packages a setup + the pyconvino/mtpole-ttj-pyconvino stack (`--mode new`,
-the default) and submits scan jobs; `writeAllCondorJobs_pyconvino.sh` drives
+packages a setup + the pyconvino/mtpole-ttj-pyconvino stack and submits
+scan jobs; `writeAllCondorJobs_pyconvino.sh` drives
 it across all `ConvinoSetups`. `condorManagement/HTC_monitor.py` monitors
 and resubmits failed jobs. `tools/collectCondorScans.py` and
 `tools/collectFitMatrix.py` aggregate the results afterwards.
@@ -69,5 +73,10 @@ additive stat/syst/per-group mass-uncertainty breakdown) live in `docs/`.
 The original C++/ROOT combination (`Convino/`), the ROOT-based fit
 (`mtpole-ttj/`), and `MtopSummaryPlot`'s PyROOT plotting path were removed
 from git on 2026-07-28 in favor of the pyconvino/mtpole-ttj-pyconvino/
-matplotlib stack above. Local tarball archives of the removed content are
-kept in `archive/` (gitignored, not part of the repo).
+matplotlib stack above.
+
+## Archive
+
+`archive/` is gitignored. Old results and outputs (fit matrices, scans, theory
+plots) up to 2026-09-29 are backed up on EOS in
+`/eos/user/s/sewuchte/MassCombination/archive/` (`.tar.gz` + `.sha256`).
