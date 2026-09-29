@@ -179,7 +179,7 @@ def main():
                          default=os.path.join(REPO_ROOT, 'theory-data', 'nlo_converted.json'),
                          help='Passed through to createCondorJobs.py')
     parser.add_argument('--stripper-theory-json',
-                         default=os.path.join(REPO_ROOT, 'theory-data', 'withVVF', 'data.json'),
+                         default=os.path.join(REPO_ROOT, 'ttbarj-nnlo-cms-atlas-analysis', 'withVVF_data_nlc.json'),
                          help='Passed through to createCondorJobs.py')
     parser.add_argument('--blind-salt-file', default=os.path.expanduser('~/.masscomb_blind_salt'),
                          help='Passed through to createCondorJobs.py')

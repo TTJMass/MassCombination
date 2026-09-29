@@ -387,10 +387,10 @@ def main():
                         help='Force the legacy live-AFS ROOT theory path (inputs/theory_path.txt) even if '
                              '--nlo-theory-json exists. For debugging/fallback only.')
     parser.add_argument('--stripper-theory-json',
-                        default=os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'theory-data', 'withVVF', 'data.json')),
-                        help='Path to the converted NNLO/--stripper theory JSON (theory-data/withVVF/data.json). When '
+                        default=os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'ttbarj-nnlo-cms-atlas-analysis', 'withVVF_data_nlc.json')),
+                        help='Path to the converted NNLO/--stripper theory JSON (ttbarj-nnlo-cms-atlas-analysis/withVVF_data_nlc.json). When '
                              'present and --mode new, it is shipped inside the setup tarball and passed as '
-                             '--stripperPath, so --stripper fits never read this 115MB file live off AFS '
+                             '--stripperPath, so --stripper fits never read this ~210MB file live off AFS '
                              '(doFit.py otherwise defaults --stripperPath to a hardcoded AFS path). Ignored for '
                              '--mode old.')
     parser.add_argument('--no-ship-stripper-json', action='store_true',
@@ -530,8 +530,8 @@ def main():
     # from inside the fit (the dominant AFS load source under heavy
     # concurrent scan-job load, see PLAN_afs_load_fix.md). Only the new
     # (pyconvino) stack knows how to read either JSON. Shared by the NLO
-    # (theory-data/powheg_generations) and NNLO/--stripper (theory-data/withVVF/data.json,
-    # 115MB -- well within what transfer_input_files already proves out at
+    # (theory-data/powheg_generations) and NNLO/--stripper (ttbarj-nnlo-cms-atlas-analysis/withVVF_data_nlc.json,
+    # ~210MB -- well within what transfer_input_files already proves out at
     # 268MB for the conda-pack env) theory sources below.
     def _ship_or_fallback(json_path, no_ship_flag, fallback_value, flag_name, extra_warning):
         json_path = os.path.abspath(json_path)
