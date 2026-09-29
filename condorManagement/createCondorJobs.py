@@ -350,10 +350,10 @@ echo "Job finished, outputs copied to $OUTDIR"
 
 def main():
     parser = argparse.ArgumentParser(description='Create condor HTCondor jobs varying correlation parameters')
-    parser.add_argument('setup_path', help='Path to ConvinoSetup directory (folder containing rho_config.txt and extra_correlations.txt)')
-    parser.add_argument('eos_output_path', help='Base output path on EOS (directory)')
-    parser.add_argument('batch_name', help='Batch name for jobs')
-    parser.add_argument('jobs_folder', help='Folder where job .htc, .sh and logs will be written')
+    parser.add_argument('setup_path', nargs='?', help='Path to ConvinoSetup directory (folder containing rho_config.txt and extra_correlations.txt)')
+    parser.add_argument('eos_output_path', nargs='?', help='Base output path on EOS (directory)')
+    parser.add_argument('batch_name', nargs='?', help='Batch name for jobs')
+    parser.add_argument('jobs_folder', nargs='?', help='Folder where job .htc, .sh and logs will be written')
     parser.add_argument('--dofit-path', default=os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'mtpole-ttj-pyconvino')), help='Path to mtpole-ttj-pyconvino folder containing doFit.py')
     parser.add_argument('--min', type=float, default=-1.0, help='Minimum correlation value')
     parser.add_argument('--max', type=float, default=1.0, help='Maximum correlation value')
@@ -431,6 +431,9 @@ def main():
         make_tarball(components, out_path, exclude_for_dirs=exclude_map)
         print(f"Done: {out_path} ({os.path.getsize(out_path) / 1e6:.1f} MB)")
         return
+
+    if None in (args.setup_path, args.eos_output_path, args.batch_name, args.jobs_folder):
+        parser.error('setup_path, eos_output_path, batch_name and jobs_folder are required (except with --build-shared-tarball)')
 
     conda_pack_tarball = os.path.abspath(args.conda_pack_tarball)
     if not os.path.isfile(conda_pack_tarball):
