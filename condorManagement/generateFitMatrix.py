@@ -76,6 +76,14 @@ POI_SPLIT_ENTRIES = [
 # dropping them for --tnp jobs does not lose the breakdown itself.
 TNP_INCOMPATIBLE_FLAGS = {'--nuisanceFit', '--budget', '--globalImpacts', '--pdfEigen', '--systEigen'}
 
+# (dataset_key, theory_source, order, pdf, variant) of the nominal fits that also run
+# --bindropCheck (slow), at REF_POLY_ORDER only: the legacy-NLO reference and the
+# headline NNLO x CT18NNLO TNP fit.
+BINDROP_CHECK_ENTRIES = {
+    (REF_DATASET_KEY, REF_THEORY_SOURCE, REF_ORDER, REF_PDF, 'plain'),
+    (REF_DATASET_KEY, 'stripper_json', 'NNLO', 'CT18NNLO', 'tnp'),
+}
+
 
 def build_matrix():
     """Returns a list of axis-tuple dicts making up the concrete v1 matrix."""
@@ -166,6 +174,10 @@ def dofit_extra_args_for(entry, common_extra_args):
         parts.append('--tnp')
     elif variant == 'expScale':
         parts.append('--expScale')
+    if (entry['poi_config'] == 'single' and entry['poly_order'] == REF_POLY_ORDER and
+            (entry['dataset_key'], entry['theory_source'], entry['order'], entry['pdf'], variant)
+            in BINDROP_CHECK_ENTRIES):
+        parts.append('--bindropCheck')
     return ' '.join(parts)
 
 
