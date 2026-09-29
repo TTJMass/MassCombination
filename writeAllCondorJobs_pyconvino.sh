@@ -24,7 +24,13 @@ corrSetupsNoScan=(
 )
 
 corrSetupsWithScan=(
+"Combination_ATLAS813CMS13_corr_extrabJES"
+)
+
+corrSetupsCrossCheck=(
 "Combination_ATLAS813CMS13_corrV2"
+"Combination_ATLAS813CMS13_corr_extrabJEShigh"
+"Combination_ATLAS813CMS13_corr_extrabJESlow"
 )
 
 corrSetupsNoScanTMP=(
@@ -85,6 +91,11 @@ done
 for setup in "${corrSetupsWithScan[@]}"; do
     echo "Creating condor jobs for corr setup with scan: ${setup}"
     python3 condorManagement/createCondorJobs.py pyconvino/ConvinoSetups/${setup} ${eosOutPath} ${batchname} ${jobsdir}/${setup} "${commonArgs[@]}"
+done
+
+for setup in "${corrSetupsCrossCheck[@]}"; do
+    echo "Creating condor jobs for cross-check corr setup without scan: ${setup}"
+    python3 condorManagement/createCondorJobs.py pyconvino/ConvinoSetups/${setup} ${eosOutPath} ${batchname} ${jobsdir}/${setup} "${commonArgs[@]}" --only-nominal
 done
 
 for setup in "${toTestAtlas[@]}"; do

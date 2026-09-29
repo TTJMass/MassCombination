@@ -33,10 +33,11 @@ import subprocess
 import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'mtpole-ttj-pyconvino'))
-from matrix_axes import (SETUP_TO_DATASET_KEY, DATASET_KEY_TO_SETUP, theory_tag, valid_combo,  # noqa: E402
+from matrix_axes import (DATASET_KEY_TO_SETUP, theory_tag, valid_combo,  # noqa: E402
                           REF_DATASET_KEY, REF_THEORY_SOURCE, REF_ORDER, REF_PDF,
                           SWEEP_DATASET_KEYS, SWEEP_ORDERS, SWEEP_PDFS, POLY_ORDERS,
-                          STRIPPER_VARIANTS)
+                          STRIPPER_VARIANTS, REF_STRIPPER_VARIANT, REF_POLY_ORDER,
+                          BJES_CROSSCHECK_DATASET_KEYS, PULLS_CROSSCHECK_DATASET_KEYS, PULLS_SUFFIX)
 from createCondorJobs import sanitize  # noqa: E402
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -80,12 +81,15 @@ def build_matrix():
     """Returns a list of axis-tuple dicts making up the concrete v1 matrix."""
     entries = []
 
-    def add(category, dataset_key, theory_source, order, pdf, poi_config, variant='plain'):
-        entries.append({
+    def add(category, dataset_key, theory_source, order, pdf, poi_config, variant='plain', poly_order=None):
+        entry = {
             'category': category, 'dataset_key': dataset_key,
             'theory_source': theory_source, 'order': order, 'pdf': pdf,
             'poi_config': poi_config, 'variant': variant,
-        })
+        }
+        if poly_order is not None:
+            entry['poly_order'] = poly_order
+        entries.append(entry)
 
     add('reference', REF_DATASET_KEY, REF_THEORY_SOURCE, REF_ORDER, REF_PDF, 'single')
 
@@ -113,6 +117,20 @@ def build_matrix():
     for dk, poi_config in POI_SPLIT_ENTRIES:
         add('poi_split', dk, REF_THEORY_SOURCE, REF_ORDER, REF_PDF, poi_config)
 
+    # Cross-checks, run once per theory: the legacy-NLO reference point plus the
+    # stripper order x PDF sweep, nominal variant and poly order only.
+    def add_crosscheck(category, dk):
+        add(category, dk, REF_THEORY_SOURCE, REF_ORDER, REF_PDF, 'single', poly_order=REF_POLY_ORDER)
+        for order in SWEEP_ORDERS:
+            for pdf in SWEEP_PDFS:
+                add(category, dk, 'stripper_json', order, pdf, 'single',
+                    variant=REF_STRIPPER_VARIANT, poly_order=REF_POLY_ORDER)
+
+    for dk in BJES_CROSSCHECK_DATASET_KEYS:
+        add_crosscheck('crosscheck_bjes', dk)
+    for dk in PULLS_CROSSCHECK_DATASET_KEYS:
+        add_crosscheck('crosscheck_pulls', dk)
+
     return entries
 
 
@@ -122,6 +140,8 @@ def axis_tag(entry):
               f"poly{entry['poly_order']}"]
     if entry.get('variant', 'plain') != 'plain':
         parts.append(entry['variant'])
+    if entry['dataset_key'].endswith(PULLS_SUFFIX):
+        parts.append('pulls')
     return '__'.join(parts)
 
 
@@ -157,7 +177,7 @@ def main():
                          help='Condor batch_name prefix (default: MassComb_fitmatrix_<YYYYMMDD>)')
     parser.add_argument('--categories', nargs='+',
                          choices=['reference', 'standalone', 'atlas_energy_combo', 'sweep', 'other_combo',
-                                  'poi_split', 'all'],
+                                  'poi_split', 'crosscheck_bjes', 'crosscheck_pulls', 'all'],
                          default=['all'], help='Restrict generation to these categories')
     parser.add_argument('--datasets', nargs='+', default=None,
                          help='Restrict the sweep category to these dataset_key(s) only (e.g. CMS_13TeV_npz). '
@@ -240,9 +260,10 @@ def main():
     # Cross every resolved axis-tuple with both interpolation-polynomial
     # orders: user decision 2026-07-12 to always get both settings' final
     # results, mirrors matrix_axes.POLY_ORDERS as the single source of truth.
-    resolved = [dict(e, poly_order=p) for e in resolved for p in POLY_ORDERS]
+    resolved = [dict(e, poly_order=p) for e in resolved
+                for p in ((e['poly_order'],) if 'poly_order' in e else POLY_ORDERS)]
 
-    print(f"Generating {len(resolved)} axis-tuple(s) (x{len(POLY_ORDERS)} poly orders) "
+    print(f"Generating {len(resolved)} axis-tuple(s) (incl. poly orders) "
           f"across categories {sorted(set(e['category'] for e in resolved))}")
 
     # Every axis-tuple sharing the same ConvinoSetup produces a BYTE-IDENTICAL
@@ -298,12 +319,15 @@ def main():
         ]
         if args.do_impacts:
             cmd.append('--do-impacts')
+        nuisance_values = e['dataset_key'].endswith(PULLS_SUFFIX)
+        if nuisance_values:
+            cmd.append('--convino-extra-args=--use-nuisance-values')
 
         manifest.append({
             'axis_tag': tag, 'category': e['category'], 'dataset_key': e['dataset_key'],
             'theory_source': e['theory_source'], 'order': e['order'], 'pdf': e['pdf'],
             'poi_config': e['poi_config'], 'poly_order': e['poly_order'], 'variant': e.get('variant', 'plain'),
-            'setup_path': setup_path,
+            'nuisance_values': nuisance_values, 'setup_path': setup_path,
             'eos_output_path': eos_output_path, 'jobs_folder': jobs_folder,
             'dofit_extra_args': dofit_extra_args,
         })
