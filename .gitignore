@@ -34,6 +34,8 @@ input_plots*
 # Claude-session working notes/scratch, kept locally only
 FITMATRIX_STATUS.md
 GLOBAL_IMPACTS_PLAN.md
+MULTIPROCESSING_PLAN.md
+TNP_EXPSCALE_FIT_PLAN.md
 global_impacts_dev/
 
 # local archives of decommissioned old-stack content
