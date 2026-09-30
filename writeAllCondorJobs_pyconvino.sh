@@ -29,8 +29,11 @@ corrSetupsWithScan=(
 
 corrSetupsCrossCheck=(
 "Combination_ATLAS813CMS13_corrV2"
-"Combination_ATLAS813CMS13_corr_extrabJEShigh"
-"Combination_ATLAS813CMS13_corr_extrabJESlow"
+"Combination_ATLAS813CMS13_corr_extrabJES_optA"
+"Combination_ATLAS813CMS13_corr_extrabJES_optB"
+"Combination_ATLAS813CMS13_corr_extrabJES_optC"
+"Combination_ATLAS813CMS13_corr_extrabJES_optR2"
+"Combination_ATLAS813CMS13_corr_extrabJES_ttfree"
 )
 
 corrSetupsNoScanTMP=(

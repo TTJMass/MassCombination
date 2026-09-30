@@ -37,7 +37,8 @@ from matrix_axes import (DATASET_KEY_TO_SETUP, theory_tag, valid_combo,  # noqa:
                           REF_DATASET_KEY, REF_THEORY_SOURCE, REF_ORDER, REF_PDF,
                           SWEEP_DATASET_KEYS, SWEEP_ORDERS, SWEEP_PDFS, POLY_ORDERS,
                           STRIPPER_VARIANTS, REF_STRIPPER_VARIANT, REF_POLY_ORDER,
-                          BJES_CROSSCHECK_DATASET_KEYS, PULLS_CROSSCHECK_DATASET_KEYS, PULLS_SUFFIX)
+                          BJES_CROSSCHECK_DATASET_KEYS, TTFREE_CROSSCHECK_DATASET_KEYS,
+                          PULLS_CROSSCHECK_DATASET_KEYS, PULLS_SUFFIX)
 from createCondorJobs import sanitize  # noqa: E402
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -136,6 +137,8 @@ def build_matrix():
 
     for dk in BJES_CROSSCHECK_DATASET_KEYS:
         add_crosscheck('crosscheck_bjes', dk)
+    for dk in TTFREE_CROSSCHECK_DATASET_KEYS:
+        add_crosscheck('crosscheck_ttfree', dk)
     for dk in PULLS_CROSSCHECK_DATASET_KEYS:
         add_crosscheck('crosscheck_pulls', dk)
 
@@ -189,7 +192,7 @@ def main():
                          help='Condor batch_name prefix (default: MassComb_fitmatrix_<YYYYMMDD>)')
     parser.add_argument('--categories', nargs='+',
                          choices=['reference', 'standalone', 'atlas_energy_combo', 'sweep', 'other_combo',
-                                  'poi_split', 'crosscheck_bjes', 'crosscheck_pulls', 'all'],
+                                  'poi_split', 'crosscheck_bjes', 'crosscheck_ttfree', 'crosscheck_pulls', 'all'],
                          default=['all'], help='Restrict generation to these categories')
     parser.add_argument('--datasets', nargs='+', default=None,
                          help='Restrict the sweep category to these dataset_key(s) only (e.g. CMS_13TeV_npz). '
