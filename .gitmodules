@@ -16,4 +16,4 @@
 	update = merge
 [submodule "ttbarj-nnlo-cms-atlas-analysis"]
 	path = ttbarj-nnlo-cms-atlas-analysis
-	url = ssh://git@gitlab.cern.ch:7999/poncelet/ttbarj-nnlo-cms-atlas-analysis.git
+	url = ssh://git@gitlab.cern.ch:7999/ttjmass/ttbarj-nnlo-cms-atlas-analysis.git
