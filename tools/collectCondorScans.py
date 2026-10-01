@@ -692,7 +692,7 @@ def plot_scan(scanname: str, scan: dict, outdir: str, unblind: bool = False) -> 
     x_line = np.linspace(-1, 1, 200)
     def _fit_and_plot(ax, xvals, yvals):
         try:
-            mask2 = (~np.isnan(xvals)) & (~np.isnan(yvals))
+            mask2 = (~np.isnan(xvals)) & (~np.isnan(yvals)) & ~reg_flags
             if np.sum(mask2) >= 2:
                 coeff = np.polyfit(xvals[mask2], yvals[mask2], 2)
                 y_line = np.polyval(coeff, x_line)
@@ -813,6 +813,17 @@ def plot_scan(scanname: str, scan: dict, outdir: str, unblind: bool = False) -> 
             ax_r_bot.set_ylim(rv_min - vpad, rv_max + vpad)
     except Exception:
         pass
+
+    # shade correlation values whose prior was regularised: the unshaded part is the
+    # range where the scanned value is really used
+    reg_x = xs[reg_flags & mask_x]
+    if reg_x.size:
+        ux = np.unique(xs[mask_x])
+        step = np.min(np.diff(ux)) if ux.size > 1 else 0.05
+        for _ax in (ax_l_top, ax_l_mid, ax_l_bot, ax_r_top, ax_r_mid, ax_r_bot):
+            for i, x in enumerate(reg_x):
+                _ax.axvspan(x - step / 2, x + step / 2, color='0.88', lw=0, zorder=0,
+                            label='Prior not PD (regularised)' if i == 0 else None)
 
     # add deduplicated legends to each axis
     def _add_legend(ax):
@@ -1161,6 +1172,9 @@ def compute_scan_correlations(scans: Dict[str, dict], verbose: bool = False) -> 
         for e in entries:
             v = e.get('value')
             c = e.get('central')
+            # a regularised prior does not use the scanned value
+            if e.get('regularized'):
+                continue
             try:
                 if v is None or c is None:
                     continue
@@ -1218,6 +1232,8 @@ def print_top_deviations(scans: Dict[str, dict], topn: int = 10, unblind: bool =
         max_delta = 0.0
         best = None
         for e in entries:
+            if e.get('regularized'):
+                continue
             try:
                 delta = abs(e.get('central', 0.0) - nom_c)
             except Exception:
@@ -1263,6 +1279,8 @@ def print_top_uncertainty_deviations(scans: Dict[str, dict], topn: int = 10) -> 
         max_du = 0.0
         best = None
         for e in entries:
+            if e.get('regularized'):
+                continue
             try:
                 du = abs(e.get('total_unc', 0.0) - nom_u)
             except Exception:
