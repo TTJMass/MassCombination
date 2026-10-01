@@ -21,6 +21,7 @@ import math
 import os
 import re
 from collections import defaultdict
+import sys
 from typing import Dict, List, Optional
 
 import matplotlib
@@ -34,7 +35,31 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
 import mplhep as hep
-hep.style.use(hep.style.CMS)
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'mtpole-ttj-pyconvino'))
+import plot_label  # noqa: E402
+plot_label.use_style()
+
+
+def energy_for_config(config: str) -> str:
+    """Centre-of-mass energy label of a ConvinoSetup's data."""
+    if config.startswith(('Combination_ATLAS813', 'Combination_ATLAS8CMS13')):
+        return '8+13 TeV'
+    if config.startswith(('Combination_ATLAS13CMS13', 'ATLAS13Only', 'CMSOnly')):
+        return '13 TeV'
+    if config.startswith('ATLAS8Only'):
+        return '8 TeV'
+    raise ValueError(f'unknown ConvinoSetup config {config!r}: add its energy to energy_for_config')
+
+
+def _fig_header(fig, energy, y, fontsize=13):
+    """Figure-level 'ATLAS+CMS Preliminary' (bold italic + upright) and energy at the right."""
+    exp_txt = fig.text(0.01, y, plot_label.EXPERIMENT, fontsize=fontsize, va='top', ha='left',
+                       fontweight='bold', fontstyle='italic')
+    status_txt = fig.text(0.01, y, plot_label.STATUS, fontsize=fontsize, va='top', ha='left')
+    fig.canvas.draw()
+    x1 = exp_txt.get_window_extent(renderer=fig.canvas.get_renderer()).x1
+    status_txt.set_x(x1 / fig.bbox.width + 0.008)
+    fig.text(0.99, y, energy, fontsize=fontsize, va='top', ha='right')
 
 
 # Sanity cap (GeV) for flagging a scan point as "same as nominal": the scan
@@ -527,8 +552,8 @@ def plot_scan(scanname: str, scan: dict, outdir: str, unblind: bool = False) -> 
     # a regularised point's shift/uncertainty stays visually distinct
     reg_flags = np.array([bool(e.get('regularized')) for e in entries_sorted], dtype=bool)
 
-    # color array: red for exactly-nominal entries, gray for regularized, default blue otherwise
-    colors = np.where(same_as_nom, 'red', np.where(reg_flags, 'gray', 'C0'))
+    # color array: red for exactly-nominal entries, gray for regularized, blue otherwise
+    colors = np.where(same_as_nom, 'red', np.where(reg_flags, 'gray', 'tab:blue'))
 
     delta_c = centrals - nom_c
     # relative deviation wrt nominal central value (fractional)
@@ -548,20 +573,13 @@ def plot_scan(scanname: str, scan: dict, outdir: str, unblind: bool = False) -> 
     except Exception:
         nom_rel = float('nan')
 
-    # try to apply mplhep CMS style if available
-    try:
-        import mplhep as hep
-
-        plt.style.use(hep.style.CMS)
-    except Exception:
-        pass
-
     # layout: 3 rows x 2 cols GridSpec
     from matplotlib import gridspec
 
     fig = plt.figure(figsize=(10, 10))
-    # one large title on top with the scanname
-    fig.suptitle(f'Scan summary: {scanname}', fontsize=12 if len(scanname) <= 75 else 9)
+    _fig_header(fig, energy_for_config(scanname.split('/')[0]), y=0.995)
+    # scan name on the second line, below the header
+    fig.suptitle(f'Scan summary: {scanname}', y=0.962, fontsize=12 if len(scanname) <= 75 else 9)
     # reduce horizontal spacing between columns so panels sit closer
     gs = gridspec.GridSpec(3, 2, width_ratios=[1, 1], height_ratios=[1, 1, 1], hspace=0.25, wspace=0.18)
 
@@ -825,6 +843,9 @@ def plot_scan(scanname: str, scan: dict, outdir: str, unblind: bool = False) -> 
                 _ax.axvspan(x - step / 2, x + step / 2, color='0.88', lw=0, zorder=0,
                             label='Prior not PD (regularised)' if i == 0 else None)
 
+    for _ax in (ax_l_top, ax_l_mid, ax_l_bot, ax_r_top, ax_r_mid, ax_r_bot):
+        _ax.yaxis.get_offset_text().set_fontsize(fs_ticks)
+
     # add deduplicated legends to each axis
     def _add_legend(ax):
         try:
@@ -855,7 +876,7 @@ def plot_scan(scanname: str, scan: dict, outdir: str, unblind: bool = False) -> 
     outfn_png = os.path.join(outdir, f'scan_{safe_name}.png')
     outfn_pdf = os.path.join(outdir, f'scan_{safe_name}.pdf')
     # reduce outer margins to give more room for the two columns
-    fig.subplots_adjust(top=0.95, bottom=0.05, left=0.06, right=0.97)
+    fig.subplots_adjust(top=0.92, bottom=0.05, left=0.06, right=0.97)
     fig.savefig(outfn_png)
     try:
         fig.savefig(outfn_pdf)
@@ -969,6 +990,9 @@ def plot_2d(scans: Dict[str, dict], outdir: str):
     - Z2: total_unc - nominal_total_unc
     """
     names = sorted(scans.keys())
+    # the map's data: one energy if all its scans share it, else both
+    energies = {energy_for_config(n.split('/')[0]) for n in names}
+    energy = energies.pop() if len(energies) == 1 else '8+13 TeV'
     # fill the names with dummy values from 0 to N to make shorter labels
     namesNew = [str(i) for i in range(len(names))]
 
@@ -1088,7 +1112,7 @@ def plot_2d(scans: Dict[str, dict], outdir: str):
         pass
     # put a small label outside of the plot explaining what the hatched area means
     # ax.text(1.02, 0.02, 'Hatched: non-invertible', transform=ax.transAxes, fontsize=8, va='bottom', ha='left', color='gray')
-    hep.cms.label(exp="ATLAS+CMS", llabel= "Work in Progress", rlabel = "8+13 TeV", ax=ax)
+    plot_label.add_label(ax, energy, fontsize=24)
     p_png = os.path.join(outdir, '2d_central_diff.png')
     p_pdf = os.path.join(outdir, '2d_central_diff.pdf')
     fig.savefig(p_png)
@@ -1143,7 +1167,7 @@ def plot_2d(scans: Dict[str, dict], outdir: str):
         pass
     # put a small label outside of the plot explaining what the hatched area means
     # ax.text(1.02, 0.02, 'Hatched: non-invertible', transform=ax.transAxes, fontsize=8, va='bottom', ha='left', color='gray')
-    hep.cms.label(exp="ATLAS+CMS", llabel= "Work in Progress", rlabel = "8+13 TeV", ax=ax)
+    plot_label.add_label(ax, energy, fontsize=24)
     p_png = os.path.join(outdir, '2d_total_unc_diff.png')
     p_pdf = os.path.join(outdir, '2d_total_unc_diff.pdf')
     fig.savefig(p_png)
