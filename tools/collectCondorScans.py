@@ -561,7 +561,7 @@ def plot_scan(scanname: str, scan: dict, outdir: str, unblind: bool = False) -> 
 
     fig = plt.figure(figsize=(10, 10))
     # one large title on top with the scanname
-    fig.suptitle(f'Scan summary: {scanname}', fontsize=12)
+    fig.suptitle(f'Scan summary: {scanname}', fontsize=12 if len(scanname) <= 75 else 9)
     # reduce horizontal spacing between columns so panels sit closer
     gs = gridspec.GridSpec(3, 2, width_ratios=[1, 1], height_ratios=[1, 1, 1], hspace=0.25, wspace=0.18)
 
@@ -1158,7 +1158,7 @@ def compute_scan_correlations(scans: Dict[str, dict], verbose: bool = False) -> 
     """Compute linear correlation (Pearson r) between mass central value and correlation for each scan.
 
     Returns list of dicts with keys: scan, r, slope, intercept, n_points
-    sorted by absolute r desc.
+    sorted by absolute slope (mass change per unit correlation) desc.
     """
     rows = []
     for name, s in scans.items():
@@ -1200,7 +1200,7 @@ def compute_scan_correlations(scans: Dict[str, dict], verbose: bool = False) -> 
             r = float('nan')
         # linear fit
         try:
-            slope, intercept = np.polyfit(xs_arr, ys_arr, 2)
+            slope, intercept = np.polyfit(xs_arr, ys_arr, 1)
         except Exception:
             slope, intercept = float('nan'), float('nan')
 
@@ -1343,9 +1343,9 @@ def create_latex_summary_table(scans: Dict[str, dict], outdir: str, unblind: boo
     table_lines.append(r'\caption{Summary of maximum positive and negative deviations in fitted mass and uncertainty for each correlation scan.}')
     table_lines.append(r'\resizebox{\textwidth}{!}{%')
 
-    table_lines.append(r'\begin{tabular}{lcccc}')
+    table_lines.append(r'\begin{tabular}{lccccc}')
     table_lines.append(r'\hline')
-    table_lines.append(r'Scan & Max $+\Delta m_{t}$ [GeV] & Max $-\Delta m_{t}$ [GeV] & Max $+\Delta \sigma$ [GeV] & Max $-\Delta \sigma$ [GeV] \\')
+    table_lines.append(r'Scan & Max $+\Delta m_{t}$ [GeV] & Max $-\Delta m_{t}$ [GeV] & Max $+\Delta \sigma$ [GeV] & Max $-\Delta \sigma$ [GeV] & Valid range \\')
     table_lines.append(r'\hline')
 
 
@@ -1364,6 +1364,8 @@ def create_latex_summary_table(scans: Dict[str, dict], outdir: str, unblind: boo
         max_neg_unc_diff = float('inf')
 
         for e in entries:
+            if e.get('regularized'):
+                continue
             c = e.get('central')
             u = e.get('total_unc')
             nominal = s.get('nominal')
@@ -1405,6 +1407,8 @@ def create_latex_summary_table(scans: Dict[str, dict], outdir: str, unblind: boo
         max_neg_unc_diff = float('inf')
 
         for e in entries:
+            if e.get('regularized'):
+                continue
             c = e.get('central')
             u = e.get('total_unc')
             nominal = s.get('nominal')
@@ -1448,7 +1452,7 @@ def create_latex_summary_table(scans: Dict[str, dict], outdir: str, unblind: boo
                 if 'ATLAS13' in right or 'ATLAS\_13' in right or 'ATLAS13TeV' in right:
                     right = f"{{\\color{{blue}} {right}}}"
                 if 'ATLAS13' in left or 'ATLAS\_13' in left or 'ATLAS13TeV' in left:
-                    left = f"{{\\color{{blue}} {right}}}"
+                    left = f"{{\\color{{blue}} {left}}}"
                 if 'ATLAS8' in right or 'ATLAS\_8' in right or 'ATLAS8TeV' in right:
                     right = f"{{\\color{{red}} {right}}}"
                 if 'ATLAS8' in left or 'ATLAS\_8' in left or 'ATLAS8TeV' in left:
@@ -1459,7 +1463,9 @@ def create_latex_summary_table(scans: Dict[str, dict], outdir: str, unblind: boo
         else:
             name_colored = name_escaped
 
-        table_lines.append(f"{name_colored} & {pos_delta_str} & {neg_delta_str} & {pos_unc_str} & {neg_unc_str} \\\\")
+        valid = [e['value'] for e in entries if e.get('value') is not None and not e.get('regularized')]
+        range_str = f"[{min(valid):.2f}, {max(valid):.2f}]" if valid else 'none'
+        table_lines.append(f"{name_colored} & {pos_delta_str} & {neg_delta_str} & {pos_unc_str} & {neg_unc_str} & {range_str} \\\\")
     table_lines.append(r'\hline')
     table_lines.append(r'\end{tabular}')
     table_lines.append(r'}')  # end resizebox
@@ -1540,7 +1546,7 @@ def main():
     try:
         corr_rows = compute_scan_correlations(scans, verbose=args.verbose)
         # print top 10
-        print('\nTop 10 scans by absolute Pearson r (mass vs correlation):')
+        print('\nTop 10 scans by absolute slope of mass vs correlation:')
         print('{:3s} {:60s} {:>8s} {:>10s} {:>10s} {:>10s}'.format('#', 'scan', 'r', 'slope', 'intercept', 'n'))
         for i, r in enumerate(corr_rows[:10]):
             print(f"{i+1:3d} {r['scan'][:60]:60s} {r['r']:8.4f} {r['slope']:10.4f} {r['intercept']:10.4f} {r['n_points']:10d}")
