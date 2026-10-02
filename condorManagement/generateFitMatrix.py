@@ -72,10 +72,9 @@ POI_SPLIT_ENTRIES = [
 
 
 # --tnp is hard-incompatible in doFit.py with these (raises ValueError; those
-# breakdown paths aren't TNP-aware). doBreakdown()/doAdditiveMassBreakdown()/
-# doExpStatSystBreakdown() run unconditionally regardless of these flags, so
-# dropping them for --tnp jobs does not lose the breakdown itself.
-TNP_INCOMPATIBLE_FLAGS = {'--nuisanceFit', '--budget', '--globalImpacts', '--pdfEigen', '--systEigen'}
+# breakdown paths aren't TNP-aware). --budget/--globalImpacts ARE accepted with
+# --tnp (doFit.py), so they are kept for --tnp jobs.
+TNP_INCOMPATIBLE_FLAGS = {'--nuisanceFit', '--pdfEigen', '--systEigen'}
 
 # (dataset_key, theory_source, order, pdf, variant) of the nominal fits that also run
 # --bindropCheck (slow), at REF_POLY_ORDER only: the legacy-NLO reference and the
