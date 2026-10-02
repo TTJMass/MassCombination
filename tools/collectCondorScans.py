@@ -40,28 +40,6 @@ import plot_label  # noqa: E402
 plot_label.use_style()
 
 
-def energy_for_config(config: str) -> str:
-    """Centre-of-mass energy label of a ConvinoSetup's data."""
-    if config.startswith(('Combination_ATLAS813', 'Combination_ATLAS8CMS13')):
-        return '8+13 TeV'
-    if config.startswith(('Combination_ATLAS13CMS13', 'ATLAS13Only', 'CMSOnly')):
-        return '13 TeV'
-    if config.startswith('ATLAS8Only'):
-        return '8 TeV'
-    raise ValueError(f'unknown ConvinoSetup config {config!r}: add its energy to energy_for_config')
-
-
-def _fig_header(fig, energy, y, fontsize=13):
-    """Figure-level 'ATLAS+CMS Preliminary' (bold italic + upright) and energy at the right."""
-    exp_txt = fig.text(0.01, y, plot_label.EXPERIMENT, fontsize=fontsize, va='top', ha='left',
-                       fontweight='bold', fontstyle='italic')
-    status_txt = fig.text(0.01, y, plot_label.STATUS, fontsize=fontsize, va='top', ha='left')
-    fig.canvas.draw()
-    x1 = exp_txt.get_window_extent(renderer=fig.canvas.get_renderer()).x1
-    status_txt.set_x(x1 / fig.bbox.width + 0.008)
-    fig.text(0.99, y, energy, fontsize=fontsize, va='top', ha='right')
-
-
 # Sanity cap (GeV) for flagging a scan point as "same as nominal": the scan
 # point whose central mass is *closest* to the nominal fit's central mass is
 # taken as the one that reproduces the actual/default correlation, since two
@@ -577,7 +555,7 @@ def plot_scan(scanname: str, scan: dict, outdir: str, unblind: bool = False) -> 
     from matplotlib import gridspec
 
     fig = plt.figure(figsize=(10, 10))
-    _fig_header(fig, energy_for_config(scanname.split('/')[0]), y=0.995)
+    plot_label.add_fig_header(fig, plot_label.energy_for(scanname.split('/')[0]), y=0.995)
     # scan name on the second line, below the header
     fig.suptitle(f'Scan summary: {scanname}', y=0.962, fontsize=12 if len(scanname) <= 75 else 9)
     # reduce horizontal spacing between columns so panels sit closer
@@ -991,7 +969,7 @@ def plot_2d(scans: Dict[str, dict], outdir: str):
     """
     names = sorted(scans.keys())
     # the map's data: one energy if all its scans share it, else both
-    energies = {energy_for_config(n.split('/')[0]) for n in names}
+    energies = {plot_label.energy_for(n.split('/')[0]) for n in names}
     energy = energies.pop() if len(energies) == 1 else '8+13 TeV'
     # fill the names with dummy values from 0 to N to make shorter labels
     namesNew = [str(i) for i in range(len(names))]

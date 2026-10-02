@@ -26,9 +26,9 @@ from collections import OrderedDict
 
 import matplotlib.pyplot as plt
 import numpy as np
-import mplhep as hep
-
-hep.style.use('CMS')
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'mtpole-ttj-pyconvino'))
+import plot_label  # noqa: E402
+plot_label.use_style()
 
 def parse_sections(lines):
     sections = OrderedDict()
@@ -174,7 +174,7 @@ def build_uncertainty_dict(names_order, header_tokens, data_rows):
     return unc
 
 
-def plot_uncertainty(x, names, central_values, shifts, unc_name, outpath):
+def plot_uncertainty(x, names, central_values, shifts, unc_name, outpath, energy):
     # x: list or array positions
     # names: list labels
     # central_values: list of central floats
@@ -242,7 +242,7 @@ def plot_uncertainty(x, names, central_values, shifts, unc_name, outpath):
     else:
         ax_bot.set_ylim(0.8, 1.2)
 
-    hep.cms.label(exp="ATLAS+CMS", llabel= "Work in Progress", rlabel = "8+13 TeV", ax=ax_top)
+    plot_label.add_label(ax_top, energy)
     # fig.suptitle(f'Uncertainty: {unc_name}')
     # plt.tight_layout(rect=[0,0,1,0.96])
     fig.savefig(outpath)
@@ -253,7 +253,7 @@ def plot_uncertainty(x, names, central_values, shifts, unc_name, outpath):
 
 
 # define a function that plots all uncertainties in one single plot, sorted by max absolute shift summed
-def plot_all_uncertainties_relative(x, names, central_values, unc_dict, outpath):
+def plot_all_uncertainties_relative(x, names, central_values, unc_dict, outpath, energy):
     fig, ax = plt.subplots(figsize=(12,8))
 
     central = np.array(central_values, dtype=float)
@@ -289,7 +289,7 @@ def plot_all_uncertainties_relative(x, names, central_values, unc_dict, outpath)
     ax.set_xticks(x)
     ax.set_xticklabels(names, rotation=45, ha='right', fontsize=9)
 
-    hep.cms.label(exp="ATLAS+CMS", llabel= "Work in Progress", rlabel = "8+13 TeV", ax=ax)
+    plot_label.add_label(ax, energy)
 
     plt.tight_layout()
     fig.savefig(outpath)
@@ -342,6 +342,7 @@ def main():
         if args.plot_single:
             os.makedirs(os.path.join(args.outdir, 'individual'), exist_ok=True)
 
+    energy = plot_label.energy_for(os.path.basename(args.input_file))
     with open(args.input_file, 'r') as f:
         lines = f.readlines()
     sections = parse_sections(lines)
@@ -417,7 +418,7 @@ def main():
             group_dict = OrderedDict(group)
             outpath_group = os.path.join(outdir, f'grouped/all_uncertainties_group_{igroup:02d}.png')
             print(f' Plotting group {igroup+1}/{len(unc_groups)} -> {outpath_group}')
-            plot_all_uncertainties_relative(x, names, values, group_dict, outpath_group)
+            plot_all_uncertainties_relative(x, names, values, group_dict, outpath_group, energy)
     if args.plot_single:
         count = 0
         for unc_name, shifts in unc.items():
@@ -426,7 +427,7 @@ def main():
             # outpath = os.path.join(outdir, f"unc_{count:03d}_{unc_name}.png")
             outpath = os.path.join(outdir, f"individual/unc_{unc_name}.png")
             print(f'Plotting {unc_name} -> {outpath} (n={len(shifts)})')
-            plot_uncertainty(x, names, values, shifts, unc_name, outpath)
+            plot_uncertainty(x, names, values, shifts, unc_name, outpath, energy)
             count += 1
 
     print(f'Done. Plots written to {outdir}')
