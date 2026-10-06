@@ -2,18 +2,23 @@
 	path = theory-data
 	url = https://gitlab.cern.ch/ttjmass/theory-data
 	update = merge # <-- this is what you need to add
+	branch = dev/pyconvino
 [submodule "MtopSummaryPlot"]
 	path = MtopSummaryPlot
 	url = https://github.com/TTJMass/MtopSummaryPlot.git
 	update = merge # <-- this is what you need to add
+	branch = dev/pyconvino
 [submodule "mtpole-ttj-pyconvino"]
 	path = mtpole-ttj-pyconvino
 	url = git@github.com:TTJMass/mtpole-ttj.git
 	update = merge
+	branch = dev/forpyconvino
 [submodule "pyconvino"]
 	path = pyconvino
 	url = git@github.com:SWuchterl/pyconvino.git
 	update = merge
+	branch = dev/pyconvino
 [submodule "ttbarj-nnlo-cms-atlas-analysis"]
 	path = ttbarj-nnlo-cms-atlas-analysis
 	url = ssh://git@gitlab.cern.ch:7999/ttjmass/ttbarj-nnlo-cms-atlas-analysis.git
+	branch = dev/pyconvino
