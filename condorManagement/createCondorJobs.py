@@ -480,9 +480,9 @@ def main():
 
     dofit_folder = os.path.basename(os.path.abspath(args.dofit_path))
 
-    convino_cmd = 'convino "$EXTRACTED_SETUP_DIR"/rho_config.txt --prefix "$PREFIX" --no-impacts --export npz'
+    convino_cmd = 'pyconvino "$EXTRACTED_SETUP_DIR"/rho_config.txt --prefix "$PREFIX" --no-impacts --export npz'
     if args.do_impacts:
-        convino_cmd = 'convino "$EXTRACTED_SETUP_DIR"/rho_config.txt --prefix "$PREFIX" --export npz'
+        convino_cmd = 'pyconvino "$EXTRACTED_SETUP_DIR"/rho_config.txt --prefix "$PREFIX" --export npz'
     if args.convino_extra_args:
         convino_cmd += ' ' + args.convino_extra_args
     result_ext = 'npz'
