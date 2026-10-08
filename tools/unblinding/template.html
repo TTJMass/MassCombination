@@ -1,0 +1,163 @@
+<title>TOP-25-010 Unblinding</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: one large sealed box for the main result, then groups of smaller sealed boxes in a wrapping grid. */
+:root {
+  --bg: #f5f6f8; --surface: #ffffff; --fg: #18202b; --muted: #5b6676; --line: #d9dee6;
+  --accent: #1f5fa8; --seal: #2b3442; --seal-fg: #e9edf3; --hatch: rgba(255,255,255,.06);
+  --mock: #a3520f; --mock-bg: #fbeee2;
+  --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #11151b; --surface: #181e26; --fg: #e4e8ee; --muted: #98a3b3; --line: #2a323d;
+  --accent: #7fb0ea; --seal: #2a3442; --seal-fg: #dfe5ee; --hatch: rgba(255,255,255,.05);
+  --mock: #f0a868; --mock-bg: #2c2016; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #11151b; --surface: #181e26; --fg: #e4e8ee; --muted: #98a3b3; --line: #2a323d;
+  --accent: #7fb0ea; --seal: #2a3442; --seal-fg: #dfe5ee; --hatch: rgba(255,255,255,.05);
+  --mock: #f0a868; --mock-bg: #2c2016; color-scheme: dark }
+body { background: var(--bg); color: var(--fg); font: 15px/1.5 var(--sans); }
+.wrap { max-width: 980px; margin: 0 auto; padding-inline: 16px; padding-block: 24px 48px; display: grid; gap: 28px; }
+.mock { background: var(--mock-bg); color: var(--mock); border: 1px solid var(--mock); border-radius: 6px; padding: 10px 14px; font-weight: 600; }
+header h1 { margin: 0; font-size: 26px; font-weight: 600; text-wrap: balance; }
+header p { margin: 6px 0 0; color: var(--muted); max-width: 70ch; }
+h2 { margin: 0 0 4px; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.note { margin: 0 0 12px; color: var(--muted); font-size: 13.5px; max-width: 75ch; }
+.grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
+.box { position: relative; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; min-width: 0; overflow: hidden; display: grid; gap: 4px; }
+.box .lbl { font-size: 13px; color: var(--muted); }
+.box .val { font: 600 22px/1.2 var(--mono); font-variant-numeric: tabular-nums; }
+.box .unc { font: 13px/1.4 var(--mono); color: var(--muted); }
+.box.main { padding: 24px 24px 22px; border-color: var(--accent); }
+.box.main .val { font-size: 40px; color: var(--accent); }
+.box.main .unc { font-size: 14px; }
+.box.fig { padding: 12px; }
+.box.fig img { width: 100%; height: auto; background: #fff; border-radius: 4px; display: block; }
+.figs { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+.cover { position: absolute; inset: 0; border: 0; border-radius: 0; cursor: pointer; color: var(--seal-fg); font: 500 13px var(--sans); letter-spacing: .04em;
+  background: repeating-linear-gradient(135deg, var(--hatch) 0 8px, transparent 8px 16px), var(--seal);
+  display: grid; place-items: center; transition: transform .45s ease, opacity .45s ease; }
+.cover span { display: grid; gap: 2px; text-align: center; }
+.cover small { font: 11px var(--mono); opacity: .7; }
+.cover:hover { filter: brightness(1.12); }
+.cover:focus-visible { outline: 3px solid var(--accent); outline-offset: -3px; }
+.box.open .cover { transform: translateY(-100%); opacity: 0; pointer-events: none; }
+.main .cover { font-size: 16px; }
+.open-row { display: flex; flex-wrap: wrap; gap: 8px; }
+button.ghost { font: 500 13px var(--sans); background: transparent; color: var(--accent); border: 1px solid var(--line); border-radius: 6px; padding: 6px 12px; cursor: pointer; }
+button.ghost:focus-visible { outline: 2px solid var(--accent); }
+.plain { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 12px 16px; font-size: 13.5px; color: var(--muted); }
+.plain table { border-collapse: collapse; font: 13px var(--mono); }
+.plain td { padding: 2px 14px 2px 0; }
+footer { font-size: 12.5px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 12px; }
+@media (prefers-reduced-motion: reduce) { .cover { transition: none; } }
+</style>
+
+<div class="wrap">
+  {{banner}}
+  <header>
+    <h1>ATLAS+CMS top-quark pole mass: unblinding</h1>
+    <p>Each central value is behind a sealed box. Click a box to open it. The blinding offset is removed; no fit was run again.</p>
+  </header>
+
+  <section>
+    <h2>Main result</h2>
+    <p class="note">NNLO, CT18NNLO, TNPs, full 3-input combination (paper and AN main result).</p>
+    <div class="box main">
+      <div class="lbl">m<sub>t</sub><sup>pole</sup> [GeV]</div>
+      <div class="val">{{main}}</div>
+      <div class="unc">± 0.46 (stat) ± 0.66 (syst) ± 0.10 (interp) ± 0.19 (PDF) ± 0.35 (TNP)</div>
+      <button class="cover" aria-label="Reveal main result"><span>Click to reveal the main result<small>sealed · salt 4de0c068e866b4fb</small></span></button>
+    </div>
+  </section>
+
+  <section>
+    <h2>Compatibility with LHC Run 1</h2>
+    <p class="note">Main result minus the Run 1 direct combination (172.52 ± 0.33 GeV). Uncertainties added in quadrature.</p>
+    <div class="grid">
+      <div class="box"><div class="lbl">Main − Run 1 [GeV]</div><div class="val">{{run1}}</div><div class="unc">= {{run1_u}}</div><button class="cover" aria-label="Reveal Run 1 comparison"><span>Click to reveal</span></button></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Plots</h2>
+    <p class="note">Summary plot in the paper Fig. 2 layout, χ² scan of the main fit, and the 2-POI contours (CMS vs ATLAS, 8 vs 13 TeV; star = main result).</p>
+    <div class="figs">
+      <div class="box fig"><div class="lbl">Summary (paper Fig. 2)</div><img alt="Summary plot" src="{{img_prl_summary_round}}"><button class="cover"><span>Click to reveal</span></button></div>
+      <div class="box fig"><div class="lbl">χ² scan, main fit</div><img alt="Chi2 scan" src="{{img_chi2_scan}}"><button class="cover"><span>Click to reveal</span></button></div>
+      <div class="box fig"><div class="lbl">2 POIs: ATLAS vs CMS</div><img alt="ATLAS vs CMS contour" src="{{img_twopoi_exp}}"><button class="cover"><span>Click to reveal</span></button></div>
+      <div class="box fig"><div class="lbl">2 POIs: 8 TeV vs 13 TeV</div><img alt="8 vs 13 TeV contour" src="{{img_twopoi_ecm}}"><button class="cover"><span>Click to reveal</span></button></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>NNLO with TNPs, other PDF sets</h2>
+    <p class="note">Paper Table 2, AN l.1378–1390.</p>
+    <div class="grid">
+      <div class="box"><div class="lbl">NNPDF3.1</div><div class="val">{{nnpdf}}</div><div class="unc">{{nnpdf_u}}</div><button class="cover"><span>Click to reveal</span></button></div>
+      <div class="box"><div class="lbl">ABMP16</div><div class="val">{{abmp}}</div><div class="unc">{{abmp_u}}</div><button class="cover"><span>Click to reveal</span></button></div>
+      <div class="box"><div class="lbl">MSHT20</div><div class="val">{{msht}}</div><div class="unc">{{msht_u}}</div><button class="cover"><span>Click to reveal</span></button></div>
+      <div class="box"><div class="lbl">PDF4LHC21</div><div class="val">{{pdf4lhc}}</div><div class="unc">{{pdf4lhc_u}}</div><button class="cover"><span>Click to reveal</span></button></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Legacy NLO (POWHEG)</h2>
+    <p class="note">AN Table tab:combination_results. Total = MINOS ⊕ externalised scale uncertainty.</p>
+    <div class="grid">
+      <div class="box"><div class="lbl">CT18NLO</div><div class="val">{{legct18}}</div><div class="unc">{{legct18_u}}</div><button class="cover"><span>Click to reveal</span></button></div>
+      <div class="box"><div class="lbl">PDF4LHC21</div><div class="val">{{legpdf4lhc}}</div><div class="unc">{{legpdf4lhc_u}}</div><button class="cover"><span>Click to reveal</span></button></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Compatibility fits: 2 POIs</h2>
+    <p class="note">NNLO, CT18NNLO, TNPs. HESSE uncertainties.</p>
+    <div class="grid">
+      <div class="box"><div class="lbl">m<sub>t</sub> CMS [GeV]</div><div class="val">{{p2cms}}</div><div class="unc">{{p2cms_u}}</div><button class="cover"><span>Click to reveal</span></button></div>
+      <div class="box"><div class="lbl">m<sub>t</sub> ATLAS [GeV]</div><div class="val">{{p2atlas}}</div><div class="unc">{{p2atlas_u}}</div><button class="cover"><span>Click to reveal</span></button></div>
+      <div class="box"><div class="lbl">ATLAS / CMS</div><div class="val">{{p2ratio}}</div><div class="unc">{{p2ratio_u}}</div><button class="cover"><span>Click to reveal</span></button></div>
+      <div class="box"><div class="lbl">m<sub>t</sub> 8 TeV [GeV]</div><div class="val">{{e8}}</div><div class="unc">{{e8_u}}</div><button class="cover"><span>Click to reveal</span></button></div>
+      <div class="box"><div class="lbl">m<sub>t</sub> 13 TeV [GeV]</div><div class="val">{{e13}}</div><div class="unc">{{e13_u}}</div><button class="cover"><span>Click to reveal</span></button></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Compatibility fits: 3 POIs (per input inside the combination)</h2>
+    <p class="note">NNLO, CT18NNLO, TNPs. HESSE uncertainties.</p>
+    <div class="grid">
+      <div class="box"><div class="lbl">ATLAS 8 TeV [GeV]</div><div class="val">{{p3a8}}</div><div class="unc">{{p3a8_u}}</div><button class="cover"><span>Click to reveal</span></button></div>
+      <div class="box"><div class="lbl">ATLAS 13 TeV [GeV]</div><div class="val">{{p3a13}}</div><div class="unc">{{p3a13_u}}</div><button class="cover"><span>Click to reveal</span></button></div>
+      <div class="box"><div class="lbl">CMS 13 TeV [GeV]</div><div class="val">{{p3cms}}</div><div class="unc">{{p3cms_u}}</div><button class="cover"><span>Click to reveal</span></button></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Pairwise combinations</h2>
+    <p class="note">NNLO, CT18NNLO, TNPs.</p>
+    <div class="grid">
+      <div class="box"><div class="lbl">ATLAS 8 + CMS 13</div><div class="val">{{pw8c}}</div><div class="unc">{{pw8c_u}}</div><button class="cover"><span>Click to reveal</span></button></div>
+      <div class="box"><div class="lbl">ATLAS 13 + CMS 13</div><div class="val">{{pw13c}}</div><div class="unc">{{pw13c_u}}</div><button class="cover"><span>Click to reveal</span></button></div>
+      <div class="box"><div class="lbl">ATLAS 8 + 13</div><div class="val">{{pwa}}</div><div class="unc">{{pwa_u}}</div><button class="cover"><span>Click to reveal</span></button></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Not blinded (shown for context)</h2>
+    <div class="plain">
+      Single-dataset fits, NNLO, CT18NNLO, TNPs. These were never blinded.
+      <table>{{single}}</table>
+    </div>
+  </section>
+
+  <div class="open-row"><button class="ghost" id="openall">Open all boxes</button><button class="ghost" id="closeall">Seal all again</button></div>
+
+  <footer>Source: {{source}}; χ² scan points from a blinded run of the same configuration. Each combined value was checked for is_blinded and salt fingerprint 4de0c068e866b4fb before the offset was removed.</footer>
+</div>
+
+<script>
+document.querySelectorAll('.cover').forEach(b => b.addEventListener('click', () => b.closest('.box').classList.add('open')));
+document.getElementById('openall').onclick = () => document.querySelectorAll('.box').forEach(x => x.classList.add('open'));
+document.getElementById('closeall').onclick = () => document.querySelectorAll('.box').forEach(x => x.classList.remove('open'));
+</script>
