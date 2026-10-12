@@ -1,7 +1,7 @@
 # Runs doFit.py unchanged (blinded), records the x/y of plt.plot calls (chi2 scan points, blinded x) to scan_capture.json.
 import sys, json, runpy, atexit, numpy as np
 import matplotlib; matplotlib.use('Agg'); import matplotlib.pyplot as plt
-D = '/Users/sewuchte/Claude_MassComb/MassCombination/mtpole-ttj-pyconvino'
+import os; D = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'mtpole-ttj-pyconvino')
 REC = []; _p = plt.plot
 def p(*a, **k):
     if len(a) >= 2 and np.ndim(a[0]) == 1 and len(a[0]) > 5:

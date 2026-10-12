@@ -68,6 +68,8 @@ POI_SPLIT_ENTRIES = [
     ('ATLAS_8TeV_CMS_13TeV_npz', 'split_meas'),
     # Full 3-POI split.
     (REF_DATASET_KEY, 'split_meas'),
+    # 8 TeV vs 13 TeV (2-POI): --splitMassesEcm groups the measurements by energy.
+    (REF_DATASET_KEY, 'split_ecm'),
 ]
 
 
@@ -124,6 +126,8 @@ def build_matrix():
 
     for dk, poi_config in POI_SPLIT_ENTRIES:
         add('poi_split', dk, REF_THEORY_SOURCE, REF_ORDER, REF_PDF, poi_config)
+        # headline theory point, read by matrix_2d_plot.py (THEORY_POINTS) and the paper
+        add('poi_split', dk, 'stripper_json', 'NNLO', 'CT18NNLO', poi_config, variant='tnp')
 
     # Cross-checks, run once per theory: the legacy-NLO reference point plus the
     # stripper order x PDF sweep, nominal variant and poly order only.
@@ -171,6 +175,8 @@ def dofit_extra_args_for(entry, common_extra_args):
         parts.append('--splitMasses')
     elif entry['poi_config'] == 'split_exp':
         parts.append('--splitMassesExp')
+    elif entry['poi_config'] == 'split_ecm':
+        parts.append('--splitMassesEcm')
     parts.append(f"--polyOrder {entry['poly_order']}")
     if variant == 'tnp':
         parts.append('--tnp')
