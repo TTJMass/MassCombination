@@ -11,6 +11,7 @@
 # pyconvino is normally installed editable for interactive dev.
 # This script temporarily reinstalls it non-editable, packs, then restores
 # the editable install (via a trap, so it runs even if packing fails).
+# --ignore-requires-python: pyconvino declares >=3.11, masscomb is 3.10 (verified identical results).
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -32,7 +33,7 @@ mkdir -p "$ENV_CACHE_DIR"
 restore_editable() {
     echo "Restoring editable pyconvino install..."
     pip uninstall -y pyconvino >/dev/null 2>&1 || true
-    pip install -e "$PYCONVINO_DIR" --no-deps --no-user
+    pip install -e "$PYCONVINO_DIR" --no-deps --no-user --ignore-requires-python
 }
 trap restore_editable EXIT
 
@@ -45,7 +46,7 @@ python3 -c "import conda_pack" 2>/dev/null || pip install --no-user conda-pack
 pip uninstall -y convino_jax >/dev/null 2>&1 || true
 
 echo "Temporarily installing pyconvino non-editable (required for conda-pack)..."
-pip install "$PYCONVINO_DIR" --no-deps --no-user --force-reinstall
+pip install "$PYCONVINO_DIR" --no-deps --no-user --force-reinstall --ignore-requires-python
 
 echo "Packing masscomb env to $PACKED_TARBALL ..."
 conda-pack -n masscomb -o "$PACKED_TARBALL" --force
